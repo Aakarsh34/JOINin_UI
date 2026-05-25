@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'config/env.dart';
@@ -13,6 +14,15 @@ import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // App is forced into dark mode; make the Android status & nav bars match the
+  // background instead of defaulting to the system light theme.
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness: Brightness.dark,
+    systemNavigationBarColor: Color(0xFF0D1117),
+    systemNavigationBarIconBrightness: Brightness.light,
+  ));
   await Env.load();
   await _initializeFirebaseSafely();
   runApp(const JoinInApp());

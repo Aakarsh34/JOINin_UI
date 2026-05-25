@@ -32,7 +32,7 @@ class ConversationService {
       '/conversations/$conversationId/messages',
       query: {
         'limit': limit,
-        if (lastMessageId != null) 'lastMessageId': lastMessageId,
+        'lastMessageId': ?lastMessageId,
       },
     );
     return Paginated.fromJson(data, (json) => ChatMessage.fromJson(json));

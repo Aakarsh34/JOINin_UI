@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches AppTheme.darkBackground in lib/theme.dart so the Android
+         splash transitions smoothly into the Flutter UI. -->
+    <color name="launch_background">#0D1117</color>
+</resources>

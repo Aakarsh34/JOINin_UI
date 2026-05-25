@@ -8,6 +8,9 @@ class TokenStorage {
   static const _refreshKey = 'refresh_token';
   static const _userIdKey = 'user_id';
 
+  // flutter_secure_storage 10.x stores values with custom AES ciphers on
+  // Android by default (Jetpack Security's EncryptedSharedPreferences was
+  // deprecated upstream), so we only customise the iOS Keychain options.
   final FlutterSecureStorage _storage = const FlutterSecureStorage(
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
   );

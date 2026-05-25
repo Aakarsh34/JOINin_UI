@@ -23,15 +23,15 @@ class SessionService {
     final query = <String, dynamic>{
       'page': page,
       'limit': limit,
-      if (lat != null) 'lat': lat,
-      if (lng != null) 'lng': lng,
-      if (radiusKm != null) 'radiusKm': radiusKm,
+      'lat': ?lat,
+      'lng': ?lng,
+      'radiusKm': ?radiusKm,
       if (activityType != null && activityType.isNotEmpty) 'activityType': activityType,
-      if (dateFrom != null) 'dateFrom': dateFrom.toUtc().toIso8601String(),
-      if (dateTo != null) 'dateTo': dateTo.toUtc().toIso8601String(),
-      if (skillLevel != null) 'skillLevel': skillLevel,
-      if (slotsAvailable != null) 'slotsAvailable': slotsAvailable,
-      if (status != null) 'status': status,
+      'dateFrom': ?dateFrom?.toUtc().toIso8601String(),
+      'dateTo': ?dateTo?.toUtc().toIso8601String(),
+      'skillLevel': ?skillLevel,
+      'slotsAvailable': ?slotsAvailable,
+      'status': ?status,
     };
     final data = await _api.get<Map<String, dynamic>>('/sessions', query: query);
     return Paginated.fromJson(data, (json) => Session.fromJson(json));
@@ -50,8 +50,8 @@ class SessionService {
     final query = <String, dynamic>{
       'page': page,
       'limit': limit,
-      if (lat != null) 'lat': lat,
-      if (lng != null) 'lng': lng,
+      'lat': ?lat,
+      'lng': ?lng,
     };
     final data = await _api.get<Map<String, dynamic>>('/sessions/recommended', query: query);
     return Paginated.fromJson(data, (json) => Session.fromJson(json));
@@ -123,7 +123,7 @@ class SessionService {
       '/sessions/$sessionId/messages',
       query: {
         'limit': limit,
-        if (lastMessageId != null) 'lastMessageId': lastMessageId,
+        'lastMessageId': ?lastMessageId,
       },
     );
     return Paginated.fromJson(data, (json) => ChatMessage.fromJson(json));

@@ -24,7 +24,9 @@ android {
         applicationId = "com.example.join_in"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // Pinned to 23 (Android 6.0) because Firebase Auth, Google Sign-In, and
+        // flutter_secure_storage all crash at runtime on lower API levels.
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

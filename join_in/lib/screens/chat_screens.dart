@@ -108,7 +108,7 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
         onRefresh: _load,
         child: ListView.separated(
           itemCount: _items.length,
-          separatorBuilder: (_, __) => const Divider(height: 1, color: Colors.white10, indent: 80),
+          separatorBuilder: (_, _) => const Divider(height: 1, color: Colors.white10, indent: 80),
           itemBuilder: (context, index) {
             final conv = _items[index];
             final other = conv.otherParticipant(currentUserId);
@@ -327,8 +327,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   Widget _inputBar() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       color: AppTheme.cardDark,
+      padding: EdgeInsets.fromLTRB(
+        16,
+        12,
+        16,
+        12 + MediaQuery.viewPaddingOf(context).bottom,
+      ),
       child: Row(
         children: [
           Expanded(
@@ -487,8 +492,13 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
                           ),
           ),
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             color: AppTheme.cardDark,
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              12 + MediaQuery.viewPaddingOf(context).bottom,
+            ),
             child: Row(
               children: [
                 Expanded(
