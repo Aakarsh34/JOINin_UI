@@ -39,6 +39,9 @@ class RatingStats {
 class AppUser {
   final String id;
   final String? phone;
+  final String? email;
+  final String? googleId;
+  final String authProvider;
   final String name;
   final String photo;
   final String bio;
@@ -54,6 +57,9 @@ class AppUser {
   const AppUser({
     required this.id,
     this.phone,
+    this.email,
+    this.googleId,
+    this.authProvider = 'phone',
     this.name = '',
     this.photo = '',
     this.bio = '',
@@ -71,6 +77,9 @@ class AppUser {
     return AppUser(
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       phone: json['phone']?.toString(),
+      email: json['email']?.toString(),
+      googleId: json['googleId']?.toString(),
+      authProvider: stringFromJson(json['authProvider'], 'phone'),
       name: stringFromJson(json['name']),
       photo: stringFromJson(json['photo']),
       bio: stringFromJson(json['bio']),
@@ -89,5 +98,10 @@ class AppUser {
     );
   }
 
-  String get displayName => name.isEmpty ? (phone ?? 'User') : name;
+  String get displayName {
+    if (name.isNotEmpty) return name;
+    if (email != null && email!.isNotEmpty) return email!;
+    if (phone != null && phone!.isNotEmpty) return phone!;
+    return 'User';
+  }
 }

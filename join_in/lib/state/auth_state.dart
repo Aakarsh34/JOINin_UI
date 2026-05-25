@@ -5,6 +5,7 @@ import '../core/socket_client.dart';
 import '../core/token_storage.dart';
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/google_sign_in_service.dart';
 import '../services/user_service.dart';
 
 enum AuthStatus { unknown, signedOut, signedIn }
@@ -40,18 +41,24 @@ class AuthState extends ChangeNotifier {
       _status = AuthStatus.signedIn;
       SocketClient.instance.connect();
     } catch (_) {
+      // The Dio interceptor already tries to refresh on 401 and signals via
+      // _onAuthExpired if that fails, so any error here means the session
+      // can't be recovered.
       await TokenStorage.instance.clear();
       _status = AuthStatus.signedOut;
     }
     notifyListeners();
   }
 
-  Future<int> sendOtp(String phone) async {
+  Future<void> loginWithPhone({required String phone, String? name}) async {
     _setBusy(true);
     try {
-      final expiresIn = await _auth.sendOtp(phone);
+      final result = await _auth.loginWithPhone(phone: phone, name: name);
+      _user = result.user;
+      _status = AuthStatus.signedIn;
       _error = null;
-      return expiresIn;
+      SocketClient.instance.connect();
+      notifyListeners();
     } catch (e) {
       _error = _readableError(e);
       rethrow;
@@ -60,10 +67,10 @@ class AuthState extends ChangeNotifier {
     }
   }
 
-  Future<void> verifyOtp({required String phone, required String otp}) async {
+  Future<void> loginWithGoogle({required String idToken}) async {
     _setBusy(true);
     try {
-      final result = await _auth.verifyOtp(phone: phone, otp: otp);
+      final result = await _auth.loginWithGoogle(idToken: idToken);
       _user = result.user;
       _status = AuthStatus.signedIn;
       _error = null;
@@ -89,6 +96,9 @@ class AuthState extends ChangeNotifier {
     _setBusy(true);
     SocketClient.instance.disconnect();
     await _auth.logout();
+    try {
+      await GoogleSignInService.instance.signOut();
+    } catch (_) {}
     _user = null;
     _status = AuthStatus.signedOut;
     _error = null;

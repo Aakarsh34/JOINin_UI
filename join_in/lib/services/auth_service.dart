@@ -2,42 +2,56 @@ import '../core/api_client.dart';
 import '../core/token_storage.dart';
 import '../models/user.dart';
 
-class VerifyOtpResult {
+class LoginResult {
   final String accessToken;
   final String refreshToken;
   final AppUser user;
 
-  const VerifyOtpResult({
+  const LoginResult({
     required this.accessToken,
     required this.refreshToken,
     required this.user,
   });
+
+  factory LoginResult.fromJson(Map<String, dynamic> json) {
+    return LoginResult(
+      accessToken: json['accessToken'] as String,
+      refreshToken: json['refreshToken'] as String,
+      user: AppUser.fromJson(json['user'] as Map<String, dynamic>),
+    );
+  }
 }
 
 class AuthService {
   final ApiClient _api = ApiClient.instance;
 
-  Future<int> sendOtp(String phone) async {
+  Future<LoginResult> loginWithPhone({
+    required String phone,
+    String? name,
+  }) async {
+    final body = <String, dynamic>{'phone': phone};
+    if (name != null && name.isNotEmpty) {
+      body['name'] = name;
+    }
     final data = await _api.post<Map<String, dynamic>>(
-      '/auth/send-otp',
-      body: {'phone': phone},
+      '/auth/login/phone',
+      body: body,
     );
-    return (data['expiresin'] ?? data['expiresIn'] ?? 300) as int;
+    final result = LoginResult.fromJson(data);
+    await TokenStorage.instance.save(
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      userId: result.user.id,
+    );
+    return result;
   }
 
-  Future<VerifyOtpResult> verifyOtp({
-    required String phone,
-    required String otp,
-  }) async {
+  Future<LoginResult> loginWithGoogle({required String idToken}) async {
     final data = await _api.post<Map<String, dynamic>>(
-      '/auth/verify-otp',
-      body: {'phone': phone, 'otp': otp},
+      '/auth/login/google',
+      body: {'idToken': idToken},
     );
-    final result = VerifyOtpResult(
-      accessToken: data['accessToken'] as String,
-      refreshToken: data['refreshToken'] as String,
-      user: AppUser.fromJson(data['user'] as Map<String, dynamic>),
-    );
+    final result = LoginResult.fromJson(data);
     await TokenStorage.instance.save(
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
