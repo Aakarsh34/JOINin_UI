@@ -33,7 +33,7 @@ class NotificationsScreen extends StatelessWidget {
             ),
             child: Container(
               decoration: BoxDecoration(
-                color: isRead ? Colors.transparent : AppTheme.primaryAccent.withOpacity(0.05),
+                color: isRead ? Colors.transparent : AppTheme.primaryAccent.withValues(alpha: 0.05),
                 border: Border(left: BorderSide(color: _getBorderColor(notif['type']), width: 4)),
               ),
               child: ListTile(

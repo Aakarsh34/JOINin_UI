@@ -39,7 +39,6 @@ class AppTheme {
         primary: primaryAccent,
         secondary: secondaryAccent,
         surface: cardDark,
-        background: darkBackground,
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: darkBackground,

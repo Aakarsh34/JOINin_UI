@@ -3,7 +3,6 @@ import '../dummy_data.dart';
 import '../theme.dart';
 import 'session_detail.dart';
 import 'notifications_screen.dart';
-import 'dart:ui';
 
 class HomeFeedScreen extends StatefulWidget {
   const HomeFeedScreen({super.key});
@@ -115,7 +114,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 80, color: Colors.grey.withOpacity(0.3)),
+            Icon(Icons.search_off, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
             const Text('No sessions found', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
           ],
@@ -142,8 +141,8 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
         decoration: BoxDecoration(
           color: AppTheme.cardDark,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))],
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: IntrinsicHeight(
           child: Row(
@@ -161,7 +160,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: sportColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                            decoration: BoxDecoration(color: sportColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                             child: Row(
                               children: [
                                 Text(_getSportEmoji(session.activityType), style: const TextStyle(fontSize: 14)),

@@ -79,7 +79,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                     // Activity Pill
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: AppTheme.secondaryAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                      decoration: BoxDecoration(color: AppTheme.secondaryAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                       child: Text(widget.session.activityType, style: const TextStyle(color: AppTheme.secondaryAccent, fontWeight: FontWeight.bold)),
                     ),
                     const SizedBox(height: 16),
@@ -184,8 +184,8 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: AppTheme.darkBackground.withOpacity(0.8),
-                    border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+                    color: AppTheme.darkBackground.withValues(alpha: 0.8),
+                    border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
                   ),
                   child: ElevatedButton(
                     onPressed: isJoined ? null : _handleJoin,

@@ -32,7 +32,7 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: AppTheme.primaryAccent.withOpacity(0.2), blurRadius: 40, spreadRadius: 10)],
+                  boxShadow: [BoxShadow(color: AppTheme.primaryAccent.withValues(alpha: 0.2), blurRadius: 40, spreadRadius: 10)],
                 ),
                 child: const CircleAvatar(
                   radius: 70,

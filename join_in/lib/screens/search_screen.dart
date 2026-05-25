@@ -81,7 +81,7 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search, size: 80, color: Colors.grey.withOpacity(0.3)),
+            Icon(Icons.search, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
             const Text('Find your next game', style: TextStyle(fontSize: 18, color: Colors.grey)),
           ],
@@ -94,7 +94,7 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 80, color: Colors.grey.withOpacity(0.3)),
+            Icon(Icons.search_off, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
             const SizedBox(height: 16),
             const Text('No results found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -116,7 +116,7 @@ class _SearchScreenState extends State<SearchScreen> {
           leading: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.secondaryAccent.withOpacity(0.1),
+              color: AppTheme.secondaryAccent.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.sports, color: AppTheme.secondaryAccent),

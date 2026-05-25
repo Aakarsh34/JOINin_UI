@@ -24,7 +24,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       appBar: AppBar(
         title: Row(
           children: [
-            CircleAvatar(radius: 16, backgroundImage: NetworkImage(widget.session.organizerAvatar)),
+            CircleAvatar(radius: 16, backgroundImage: NetworkImage(widget.session.organizer.avatar)),
             const SizedBox(width: 8),
             Expanded(
               child: Column(
@@ -106,7 +106,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
       ),
       child: SafeArea(
         child: Row(

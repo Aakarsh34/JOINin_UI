@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../theme.dart';
-import '../dummy_data.dart'; // Just for dummy structures if needed
-import 'dart:ui';
 
 class CreateSessionScreen extends StatefulWidget {
   const CreateSessionScreen({super.key});
@@ -51,8 +49,11 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               type: StepperType.vertical,
               currentStep: _currentStep,
               onStepContinue: () {
-                if (_currentStep < 4) setState(() => _currentStep++);
-                else _publishSession();
+                if (_currentStep < 4) {
+                  setState(() => _currentStep++);
+                } else {
+                  _publishSession();
+                }
               },
               onStepCancel: () {
                 if (_currentStep > 0) setState(() => _currentStep--);
@@ -206,7 +207,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                         _buildStepperRow('Min Players', _minPlayers, (val) => setState(() => _minPlayers = val), min: 2, max: _slots),
                         const SizedBox(height: 24),
                         DropdownButtonFormField<String>(
-                          value: _skillLevel,
+                          initialValue: _skillLevel,
                           decoration: InputDecoration(filled: true, fillColor: AppTheme.cardDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none)),
                           items: ['Beginner', 'Intermediate', 'Advanced', 'All Welcome'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                           onChanged: (val) => setState(() => _skillLevel = val!),
@@ -234,7 +235,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                               children: [
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(color: AppTheme.primaryAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                                  decoration: BoxDecoration(color: AppTheme.primaryAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                                   child: Text(_selectedActivity ?? 'Activity', style: const TextStyle(color: AppTheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 12)),
                                 ),
                                 Container(
