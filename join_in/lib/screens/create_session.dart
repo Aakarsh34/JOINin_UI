@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../services/session_service.dart';
 import '../theme.dart';
 
 class CreateSessionScreen extends StatefulWidget {
@@ -9,25 +11,79 @@ class CreateSessionScreen extends StatefulWidget {
 }
 
 class _CreateSessionScreenState extends State<CreateSessionScreen> {
+  final SessionService _sessions = SessionService();
   int _currentStep = 0;
   bool _isLoading = false;
 
-  final List<String> _activities = ['Football', 'Cricket', 'Badminton', 'Basketball', 'Tennis', 'Pickleball'];
+  final List<String> _activities = ['football', 'cricket', 'badminton', 'basketball', 'tennis', 'pickleball'];
   String? _selectedActivity;
-  final _venueController = TextEditingController();
+  final _titleController = TextEditingController();
+  final _venueNameController = TextEditingController();
+  final _venueAddressController = TextEditingController();
+  final _descriptionController = TextEditingController();
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   int _slots = 10;
   int _minPlayers = 5;
   String _skillLevel = 'All Welcome';
-  
-  void _publishSession() async {
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _venueNameController.dispose();
+    _venueAddressController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _publishSession() async {
+    final activity = _selectedActivity;
+    final title = _titleController.text.trim();
+    if (activity == null || title.isEmpty || _selectedDate == null || _selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        backgroundColor: Colors.redAccent,
+        content: Text('Please fill out activity, title, date, and time.'),
+      ));
+      return;
+    }
+    final dt = DateTime(
+      _selectedDate!.year,
+      _selectedDate!.month,
+      _selectedDate!.day,
+      _selectedTime!.hour,
+      _selectedTime!.minute,
+    );
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
-    if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Session Published!'), backgroundColor: AppTheme.primaryAccent));
-      Navigator.pop(context);
+    try {
+      await _sessions.create({
+        'title': title,
+        'activityType': activity,
+        'venue': {
+          'name': _venueNameController.text.trim().isEmpty ? 'TBD' : _venueNameController.text.trim(),
+          'address': _venueAddressController.text.trim(),
+          'coordinates': {'type': 'Point', 'coordinates': [0, 0]},
+        },
+        'dateTime': dt.toUtc().toIso8601String(),
+        'totalSlots': _slots,
+        'minPlayers': _minPlayers,
+        'skillLevel': _skillLevel == 'All Welcome' ? 'Beginner' : _skillLevel,
+        'description': _descriptionController.text.trim(),
+        'isPublic': true,
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        backgroundColor: AppTheme.primaryAccent,
+        content: Text('Session published!', style: TextStyle(color: AppTheme.darkBackground)),
+      ));
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: Colors.redAccent,
+        content: Text(e.toString()),
+      ));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -37,7 +93,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       appBar: AppBar(title: const Text('Create Session')),
       body: Column(
         children: [
-          // Progress Bar
           LinearProgressIndicator(
             value: (_currentStep + 1) / 5,
             backgroundColor: AppTheme.cardDark,
@@ -90,20 +145,37 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               },
               steps: [
                 Step(
-                  title: const Text('Activity Type', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  subtitle: const Text('What sport are you playing?', style: TextStyle(color: AppTheme.textMuted)),
+                  title: const Text('Activity & Title', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   content: Padding(
                     padding: const EdgeInsets.only(top: 16),
-                    child: Wrap(
-                      spacing: 12, runSpacing: 12,
-                      children: _activities.map((act) => ChoiceChip(
-                        label: Text(act),
-                        selected: _selectedActivity == act,
-                        selectedColor: AppTheme.primaryAccent,
-                        labelStyle: TextStyle(color: _selectedActivity == act ? AppTheme.darkBackground : AppTheme.textLight, fontWeight: FontWeight.bold),
-                        backgroundColor: AppTheme.cardDark,
-                        onSelected: (val) => setState(() => _selectedActivity = act),
-                      )).toList(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: _activities
+                              .map((act) => ChoiceChip(
+                                    label: Text(act[0].toUpperCase() + act.substring(1)),
+                                    selected: _selectedActivity == act,
+                                    selectedColor: AppTheme.primaryAccent,
+                                    labelStyle: TextStyle(color: _selectedActivity == act ? AppTheme.darkBackground : AppTheme.textLight, fontWeight: FontWeight.bold),
+                                    backgroundColor: AppTheme.cardDark,
+                                    onSelected: (_) => setState(() => _selectedActivity = act),
+                                  ))
+                              .toList(),
+                        ),
+                        const SizedBox(height: 16),
+                        TextField(
+                          controller: _titleController,
+                          decoration: InputDecoration(
+                            labelText: 'Session title',
+                            filled: true,
+                            fillColor: AppTheme.cardDark,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   isActive: _currentStep >= 0,
@@ -111,30 +183,27 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                 ),
                 Step(
                   title: const Text('Location', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Where is it happening?', style: TextStyle(color: AppTheme.textMuted)),
                   content: Padding(
                     padding: const EdgeInsets.only(top: 16),
                     child: Column(
                       children: [
                         TextField(
-                          controller: _venueController,
-                          onChanged: (val) => setState(() {}),
+                          controller: _venueNameController,
                           decoration: InputDecoration(
-                            labelText: 'Search Venue',
-                            filled: true, fillColor: AppTheme.cardDark,
+                            labelText: 'Venue name',
+                            filled: true,
+                            fillColor: AppTheme.cardDark,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                            prefixIcon: const Icon(Icons.search, color: AppTheme.primaryAccent),
                           ),
                         ),
-                        const SizedBox(height: 16),
-                        Container(
-                          height: 180, width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: AppTheme.cardDark, borderRadius: BorderRadius.circular(16),
-                            image: _venueController.text.isNotEmpty ? const DecorationImage(image: NetworkImage('https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=1000&auto=format&fit=crop'), fit: BoxFit.cover) : null,
-                          ),
-                          child: Center(
-                            child: Icon(Icons.location_on, size: 48, color: _venueController.text.isNotEmpty ? AppTheme.primaryAccent : AppTheme.textMuted),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _venueAddressController,
+                          decoration: InputDecoration(
+                            labelText: 'Address (optional)',
+                            filled: true,
+                            fillColor: AppTheme.cardDark,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                           ),
                         ),
                       ],
@@ -145,7 +214,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                 ),
                 Step(
                   title: const Text('Date & Time', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  subtitle: const Text('When should people arrive?', style: TextStyle(color: AppTheme.textMuted)),
                   content: Padding(
                     padding: const EdgeInsets.only(top: 16),
                     child: Row(
@@ -153,7 +221,12 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                         Expanded(
                           child: InkWell(
                             onTap: () async {
-                              final d = await showDatePicker(context: context, initialDate: DateTime.now().add(const Duration(days: 1)), firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 30)));
+                              final d = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now().add(const Duration(days: 1)),
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now().add(const Duration(days: 60)),
+                              );
                               if (d != null) setState(() => _selectedDate = d);
                             },
                             child: Container(
@@ -163,7 +236,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                                 children: [
                                   const Icon(Icons.calendar_today, color: AppTheme.primaryAccent),
                                   const SizedBox(height: 8),
-                                  Text(_selectedDate == null ? 'Select Date' : '${_selectedDate!.day}/${_selectedDate!.month}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  Text(_selectedDate == null ? 'Select date' : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}', style: const TextStyle(fontWeight: FontWeight.bold)),
                                 ],
                               ),
                             ),
@@ -183,7 +256,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                                 children: [
                                   const Icon(Icons.access_time, color: AppTheme.secondaryAccent),
                                   const SizedBox(height: 8),
-                                  Text(_selectedTime == null ? 'Select Time' : _selectedTime!.format(context), style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  Text(_selectedTime == null ? 'Select time' : _selectedTime!.format(context), style: const TextStyle(fontWeight: FontWeight.bold)),
                                 ],
                               ),
                             ),
@@ -197,7 +270,6 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                 ),
                 Step(
                   title: const Text('Players & Rules', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Set the capacity and skill level', style: TextStyle(color: AppTheme.textMuted)),
                   content: Padding(
                     padding: const EdgeInsets.only(top: 16),
                     child: Column(
@@ -209,8 +281,10 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                         DropdownButtonFormField<String>(
                           initialValue: _skillLevel,
                           decoration: InputDecoration(filled: true, fillColor: AppTheme.cardDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none)),
-                          items: ['Beginner', 'Intermediate', 'Advanced', 'All Welcome'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                          onChanged: (val) => setState(() => _skillLevel = val!),
+                          items: const ['Beginner', 'Intermediate', 'Advanced', 'All Welcome']
+                              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                              .toList(),
+                          onChanged: (val) => setState(() => _skillLevel = val ?? 'All Welcome'),
                         ),
                       ],
                     ),
@@ -219,64 +293,17 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                   state: _currentStep > 3 ? StepState.complete : StepState.indexed,
                 ),
                 Step(
-                  title: const Text('Preview', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  subtitle: const Text('This is how others will see it', style: TextStyle(color: AppTheme.textMuted)),
+                  title: const Text('Description', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   content: Padding(
                     padding: const EdgeInsets.only(top: 16),
-                    child: Container(
-                      decoration: BoxDecoration(color: AppTheme.cardDarkElevated, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white10)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(color: AppTheme.primaryAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                                  child: Text(_selectedActivity ?? 'Activity', style: const TextStyle(color: AppTheme.primaryAccent, fontWeight: FontWeight.bold, fontSize: 12)),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)),
-                                  child: Text(_skillLevel, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Text('Casual $_selectedActivity', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                const Icon(Icons.place, size: 14, color: AppTheme.textMuted),
-                                const SizedBox(width: 4),
-                                Expanded(child: Text(_venueController.text.isEmpty ? 'Venue Name' : _venueController.text, style: const TextStyle(color: AppTheme.textMuted, fontSize: 13))),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(Icons.access_time, size: 14, color: AppTheme.textMuted),
-                                const SizedBox(width: 4),
-                                Text('${_selectedDate?.day ?? 'DD'}/${_selectedDate?.month ?? 'MM'} at ${_selectedTime?.format(context) ?? 'Time'}', style: const TextStyle(color: AppTheme.textMuted, fontSize: 13)),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            const Divider(color: Colors.white10, height: 1),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                const CircleAvatar(radius: 12, backgroundColor: AppTheme.primaryAccent),
-                                const SizedBox(width: 8),
-                                const Text('You', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                const Spacer(),
-                                Text('1/$_slots joined', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                              ],
-                            ),
-                          ],
-                        ),
+                    child: TextField(
+                      controller: _descriptionController,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        labelText: 'Tell people what to expect',
+                        filled: true,
+                        fillColor: AppTheme.cardDark,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                       ),
                     ),
                   ),
@@ -290,7 +317,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     );
   }
 
-  Widget _buildStepperRow(String label, int value, Function(int) onChanged, {required int min, required int max}) {
+  Widget _buildStepperRow(String label, int value, void Function(int) onChanged, {required int min, required int max}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(color: AppTheme.cardDark, borderRadius: BorderRadius.circular(16)),
@@ -300,9 +327,9 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
           Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           Row(
             children: [
-              IconButton(icon: const Icon(Icons.remove_circle, color: AppTheme.textMuted), onPressed: () => value > min ? onChanged(value - 1) : null),
+              IconButton(icon: const Icon(Icons.remove_circle, color: AppTheme.textMuted), onPressed: value > min ? () => onChanged(value - 1) : null),
               SizedBox(width: 30, child: Center(child: Text('$value', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)))),
-              IconButton(icon: const Icon(Icons.add_circle, color: AppTheme.primaryAccent), onPressed: () => value < max ? onChanged(value + 1) : null),
+              IconButton(icon: const Icon(Icons.add_circle, color: AppTheme.primaryAccent), onPressed: value < max ? () => onChanged(value + 1) : null),
             ],
           )
         ],

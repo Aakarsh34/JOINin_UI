@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import '../dummy_data.dart';
+import 'package:intl/intl.dart';
+
+import '../models/session.dart';
+import '../services/session_service.dart';
 import '../theme.dart';
-import 'session_detail.dart';
 import 'notifications_screen.dart';
+import 'session_detail.dart';
 
 class HomeFeedScreen extends StatefulWidget {
   const HomeFeedScreen({super.key});
@@ -12,16 +15,41 @@ class HomeFeedScreen extends StatefulWidget {
 }
 
 class _HomeFeedScreenState extends State<HomeFeedScreen> {
+  final SessionService _sessions = SessionService();
   bool _isLoading = true;
   bool _isMapView = false;
   String _selectedFilter = 'All';
+  List<Session> _items = [];
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      if (mounted) setState(() => _isLoading = false);
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
     });
+    try {
+      final paginated = await _sessions.list(
+        activityType: _selectedFilter == 'All' ? null : _selectedFilter.toLowerCase(),
+        limit: 30,
+      );
+      if (!mounted) return;
+      setState(() {
+        _items = paginated.items;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   void _showFilterSheet() {
@@ -38,10 +66,9 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             children: [
               const Text('Filters', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
-              const Text('Distance (km)', style: TextStyle(color: AppTheme.textMuted)),
-              Slider(value: 5.0, min: 1, max: 20, activeColor: AppTheme.primaryAccent, onChanged: (v) {}),
+              const Text('Coming soon — date, skill level, and distance filters will be applied to the backend query.', style: TextStyle(color: AppTheme.textMuted)),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Apply Filters')),
+              ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
               const SizedBox(height: 24),
             ],
           ),
@@ -64,6 +91,10 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             icon: Icon(_isMapView ? Icons.list : Icons.map_outlined, color: AppTheme.primaryAccent),
             onPressed: () => setState(() => _isMapView = !_isMapView),
           ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _load,
+          ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60),
@@ -74,17 +105,46 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
               children: [
                 GestureDetector(onTap: _showFilterSheet, child: _buildFilterChip('Filters', Icons.filter_list, false)),
                 const SizedBox(width: 8),
-                GestureDetector(onTap: () => setState(() => _selectedFilter = 'All'), child: _buildFilterChip('All', null, _selectedFilter == 'All')),
-                const SizedBox(width: 8),
-                GestureDetector(onTap: () => setState(() => _selectedFilter = 'Football'), child: _buildFilterChip('Football', null, _selectedFilter == 'Football')),
-                const SizedBox(width: 8),
-                GestureDetector(onTap: () => setState(() => _selectedFilter = 'Badminton'), child: _buildFilterChip('Badminton', null, _selectedFilter == 'Badminton')),
+                for (final f in const ['All', 'Football', 'Cricket', 'Badminton', 'Basketball', 'Tennis', 'Pickleball']) ...[
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedFilter = f);
+                      _load();
+                    },
+                    child: _buildFilterChip(f, null, _selectedFilter == f),
+                  ),
+                  const SizedBox(width: 8),
+                ],
               ],
             ),
           ),
         ),
       ),
-      body: _isLoading ? _buildSkeletonLoader() : (_isMapView ? _buildMapView() : _buildFeed()),
+      body: _isLoading
+          ? _buildSkeletonLoader()
+          : _error != null
+              ? _buildErrorState()
+              : (_isMapView ? _buildMapView() : _buildFeed()),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.cloud_off, size: 64, color: AppTheme.textMuted),
+            const SizedBox(height: 16),
+            const Text('Could not load sessions', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Text(_error ?? '', style: const TextStyle(color: AppTheme.textMuted), textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _load, child: const Text('Try again')),
+          ],
+        ),
+      ),
     );
   }
 
@@ -95,47 +155,61 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
           color: const Color(0xFF1E232A),
           child: const Center(child: Text('Map View Active', style: TextStyle(color: AppTheme.textMuted))),
         ),
-        Positioned(
-          top: 100, left: 150,
-          child: Icon(Icons.location_on, size: 48, color: AppTheme.primaryAccent),
-        ),
-        Positioned(
-          top: 250, right: 100,
-          child: Icon(Icons.location_on, size: 48, color: AppTheme.secondaryAccent),
-        ),
+        const Positioned(top: 100, left: 150, child: Icon(Icons.location_on, size: 48, color: AppTheme.primaryAccent)),
+        const Positioned(top: 250, right: 100, child: Icon(Icons.location_on, size: 48, color: AppTheme.secondaryAccent)),
       ],
     );
   }
 
   Widget _buildFeed() {
-    final results = dummySessions.where((s) => _selectedFilter == 'All' || s.activityType == _selectedFilter).toList();
-    if (results.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    if (_items.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            Icon(Icons.search_off, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
-            const SizedBox(height: 16),
-            const Text('No sessions found', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 120),
+            Center(
+              child: Column(
+                children: [
+                  Icon(Icons.search_off, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
+                  const SizedBox(height: 16),
+                  const Text('No sessions yet', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  const Text('Be the first to host one!', style: TextStyle(color: AppTheme.textMuted)),
+                ],
+              ),
+            ),
           ],
         ),
       );
     }
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: results.length,
-      itemBuilder: (context, index) => _buildSessionCard(results[index]),
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: _items.length,
+        itemBuilder: (context, index) => _buildSessionCard(_items[index]),
+      ),
     );
   }
 
   Widget _buildSessionCard(Session session) {
     Color sportColor = AppTheme.secondaryAccent;
-    if (session.activityType == 'Football') sportColor = Colors.greenAccent;
-    if (session.activityType == 'Basketball') sportColor = Colors.orangeAccent;
-    if (session.activityType == 'Cricket') sportColor = Colors.blueAccent;
-    
+    final lc = session.activityType.toLowerCase();
+    if (lc == 'football') sportColor = Colors.greenAccent;
+    if (lc == 'basketball') sportColor = Colors.orangeAccent;
+    if (lc == 'cricket') sportColor = Colors.blueAccent;
+
+    final dateLabel = session.dateTime != null
+        ? DateFormat('EEE, MMM d • h:mm a').format(session.dateTime!.toLocal())
+        : 'Time TBD';
+
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SessionDetailScreen(session: session))),
+      onTap: () async {
+        await Navigator.push(context, MaterialPageRoute(builder: (_) => SessionDetailScreen(sessionId: session.id, initial: session)));
+        _load();
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 24),
         decoration: BoxDecoration(
@@ -172,7 +246,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)),
-                            child: Text(session.skillLevel, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            child: Text(session.skillLevel.isEmpty ? 'All' : session.skillLevel, style: const TextStyle(color: Colors.white70, fontSize: 12)),
                           ),
                         ],
                       ),
@@ -183,7 +257,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                         children: [
                           const Icon(Icons.place, size: 14, color: AppTheme.textMuted),
                           const SizedBox(width: 4),
-                          Expanded(child: Text(session.venueName, style: const TextStyle(color: AppTheme.textMuted, fontSize: 13), overflow: TextOverflow.ellipsis)),
+                          Expanded(child: Text(session.venue.name, style: const TextStyle(color: AppTheme.textMuted, fontSize: 13), overflow: TextOverflow.ellipsis)),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -191,7 +265,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                         children: [
                           const Icon(Icons.access_time, size: 14, color: AppTheme.textMuted),
                           const SizedBox(width: 4),
-                          Text(session.dateTime, style: const TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+                          Text(dateLabel, style: const TextStyle(color: AppTheme.textMuted, fontSize: 13)),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -199,25 +273,30 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          CircleAvatar(radius: 12, backgroundImage: NetworkImage(session.organizer.avatar)),
+                          CircleAvatar(
+                            radius: 12,
+                            backgroundColor: AppTheme.cardDarkElevated,
+                            backgroundImage: session.organizer.photo.isNotEmpty ? NetworkImage(session.organizer.photo) : null,
+                            child: session.organizer.photo.isEmpty
+                                ? Text(
+                                    session.organizer.name.isNotEmpty ? session.organizer.name[0].toUpperCase() : '?',
+                                    style: const TextStyle(fontSize: 10, color: AppTheme.textLight),
+                                  )
+                                : null,
+                          ),
                           const SizedBox(width: 8),
-                          Text(session.organizer.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.star, size: 12, color: Colors.amber),
-                          Text('${session.organizer.rating}', style: const TextStyle(fontSize: 12, color: Colors.amber)),
-                          const Spacer(),
-                          // Slot Tracker Progress Bar
+                          Expanded(child: Text(session.organizer.name.isEmpty ? 'Organizer' : session.organizer.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
                           SizedBox(
-                            width: 80,
+                            width: 90,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text('${session.filledSlots}/${session.totalSlots} joined', style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                                 const SizedBox(height: 4),
                                 LinearProgressIndicator(
-                                  value: session.filledSlots / session.totalSlots,
+                                  value: session.totalSlots == 0 ? 0 : (session.filledSlots / session.totalSlots).clamp(0.0, 1.0),
                                   backgroundColor: Colors.white10,
-                                  valueColor: AlwaysStoppedAnimation<Color>(session.filledSlots >= session.totalSlots ? Colors.redAccent : AppTheme.primaryAccent),
+                                  valueColor: AlwaysStoppedAnimation<Color>(session.isFull ? Colors.redAccent : AppTheme.primaryAccent),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                               ],
@@ -237,14 +316,21 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
   }
 
   String _getSportEmoji(String type) {
-    switch (type) {
-      case 'Football': return '⚽';
-      case 'Badminton': return '🏸';
-      case 'Cricket': return '🏏';
-      case 'Basketball': return '🏀';
-      case 'Tennis': return '🎾';
-      case 'Pickleball': return '🏓';
-      default: return '🏅';
+    switch (type.toLowerCase()) {
+      case 'football':
+        return '⚽';
+      case 'badminton':
+        return '🏸';
+      case 'cricket':
+        return '🏏';
+      case 'basketball':
+        return '🏀';
+      case 'tennis':
+        return '🎾';
+      case 'pickleball':
+        return '🏓';
+      default:
+        return '🏅';
     }
   }
 

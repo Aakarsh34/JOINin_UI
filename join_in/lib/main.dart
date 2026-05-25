@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
-import 'theme.dart';
-import 'screens/splash_screen.dart';
-import 'screens/onboarding_screen.dart';
-import 'screens/main_navigation.dart';
+import 'package:provider/provider.dart';
 
-void main() {
+import 'config/env.dart';
+import 'screens/auth/phone_login_screen.dart';
+import 'screens/main_navigation.dart';
+import 'screens/onboarding_screen.dart';
+import 'screens/splash_screen.dart';
+import 'state/auth_state.dart';
+import 'theme.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Env.load();
   runApp(const JoinInApp());
 }
 
@@ -13,18 +20,38 @@ class JoinInApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'JoinIn',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme, // We only have a dark theme now as requested
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark,
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const SplashScreen(),
-        '/onboarding': (context) => const OnboardingScreen(),
-        '/main': (context) => const MainNavigation(),
-      },
+    return ChangeNotifierProvider(
+      create: (_) => AuthState()..bootstrap(),
+      child: MaterialApp(
+        title: 'JoinIn',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.darkTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.dark,
+        home: const _AuthGate(),
+        routes: {
+          '/onboarding': (context) => const OnboardingScreen(),
+          '/main': (context) => const MainNavigation(),
+          '/login': (context) => const PhoneLoginScreen(),
+        },
+      ),
     );
+  }
+}
+
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthState>();
+    switch (auth.status) {
+      case AuthStatus.unknown:
+        return const SplashScreen();
+      case AuthStatus.signedOut:
+        return const PhoneLoginScreen();
+      case AuthStatus.signedIn:
+        return const MainNavigation();
+    }
   }
 }

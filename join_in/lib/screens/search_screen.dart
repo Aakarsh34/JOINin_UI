@@ -1,7 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import '../dummy_data.dart';
-import 'session_detail.dart';
+import 'package:intl/intl.dart';
+
+import '../models/session.dart';
+import '../services/session_service.dart';
 import '../theme.dart';
+import 'session_detail.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -12,26 +17,57 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
-  List<Session> _searchResults = [];
-  bool _hasSearched = false;
+  final SessionService _sessions = SessionService();
+  List<Session> _allSessions = [];
+  List<Session> _filtered = [];
+  bool _loading = true;
+  Timer? _debounce;
 
-  void _performSearch(String query) {
-    if (query.isEmpty) {
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final result = await _sessions.list(limit: 50);
+      if (!mounted) return;
       setState(() {
-        _searchResults = [];
-        _hasSearched = false;
+        _allSessions = result.items;
+        _filtered = _applyQuery(result.items, _searchController.text);
+        _loading = false;
       });
-      return;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
     }
+  }
 
-    setState(() {
-      _hasSearched = true;
-      _searchResults = dummySessions.where((s) {
-        return s.title.toLowerCase().contains(query.toLowerCase()) || 
-               s.activityType.toLowerCase().contains(query.toLowerCase()) ||
-               s.venueName.toLowerCase().contains(query.toLowerCase());
-      }).toList();
+  List<Session> _applyQuery(List<Session> source, String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return source;
+    return source.where((s) {
+      return s.title.toLowerCase().contains(q) ||
+          s.activityType.toLowerCase().contains(q) ||
+          s.venue.name.toLowerCase().contains(q) ||
+          s.venue.address.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  void _onChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 200), () {
+      setState(() => _filtered = _applyQuery(_allSessions, value));
     });
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -46,89 +82,71 @@ class _SearchScreenState extends State<SearchScreen> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: TextField(
               controller: _searchController,
-              onChanged: _performSearch,
+              onChanged: _onChanged,
               decoration: InputDecoration(
                 hintText: 'Search activities, venues...',
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty 
-                  ? IconButton(
-                      icon: const Icon(Icons.clear), 
-                      onPressed: () {
-                        _searchController.clear();
-                        _performSearch('');
-                      }
-                    ) 
-                  : null,
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onChanged('');
+                        },
+                      )
+                    : null,
                 filled: true,
                 fillColor: Theme.of(context).cardColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
             ),
           ),
         ),
       ),
-      body: _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    if (!_hasSearched) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
-            const SizedBox(height: 16),
-            const Text('Find your next game', style: TextStyle(fontSize: 18, color: Colors.grey)),
-          ],
-        ),
-      );
-    }
-
-    if (_searchResults.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
-            const SizedBox(height: 16),
-            const Text('No results found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            const Text('Try adjusting your search terms', style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _searchResults.length,
-      itemBuilder: (context, index) {
-        final session = _searchResults[index];
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          tileColor: Theme.of(context).cardColor,
-          leading: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppTheme.secondaryAccent.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.sports, color: AppTheme.secondaryAccent),
-          ),
-          title: Text(session.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text('${session.activityType} • ${session.distance} km'),
-          trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-          onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => SessionDetailScreen(session: session)));
-          },
-        );
-      },
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _filtered.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.search_off, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
+                      const SizedBox(height: 16),
+                      Text(_searchController.text.isEmpty ? 'Find your next game' : 'No matching sessions', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final session = _filtered[index];
+                      final dateLabel = session.dateTime != null
+                          ? DateFormat('EEE, MMM d • h:mm a').format(session.dateTime!.toLocal())
+                          : 'TBD';
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        tileColor: Theme.of(context).cardColor,
+                        leading: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(color: AppTheme.secondaryAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                          child: const Icon(Icons.sports, color: AppTheme.secondaryAccent),
+                        ),
+                        title: Text(session.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('${session.activityType} • $dateLabel'),
+                        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => SessionDetailScreen(sessionId: session.id, initial: session)));
+                        },
+                      );
+                    },
+                  ),
+                ),
     );
   }
 }
