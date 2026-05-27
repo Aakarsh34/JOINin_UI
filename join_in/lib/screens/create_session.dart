@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../services/session_service.dart';
 import '../theme.dart';
+import 'main_navigation.dart';
 
 class CreateSessionScreen extends StatefulWidget {
   const CreateSessionScreen({super.key});
@@ -88,13 +89,18 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         'isPublic': true,
       });
       if (!mounted) return;
+      // Pop any modal routes that may be sitting on top of MainNavigation
+      // (date / time pickers, bottom sheets) before switching tabs.
+      Navigator.of(context).popUntil((route) => route.isFirst);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         backgroundColor: AppTheme.primaryAccent,
         content: Text('Session published!',
             style: TextStyle(
                 color: AppTheme.darkBackground, fontWeight: FontWeight.bold)),
       ));
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      // Jump to the Home tab; HomeFeedScreen's KeyedSubtree gets remounted, so
+      // its initState fires a fresh _load() and the brand-new session appears.
+      MainNavigation.of(context)?.switchTo(0);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

@@ -11,12 +11,27 @@ import 'search_screen.dart';
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
 
+  /// Looks up the nearest [MainNavigationState] so descendants (e.g. the
+  /// Create Session form) can programmatically switch tabs.
+  static MainNavigationState? of(BuildContext context) {
+    return context.findAncestorStateOfType<MainNavigationState>();
+  }
+
   @override
-  State<MainNavigation> createState() => _MainNavigationState();
+  State<MainNavigation> createState() => MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
+
+  /// Programmatically switch the active tab. Used after publishing a session
+  /// to jump the user back to the Home feed.
+  void switchTo(int index) {
+    if (index < 0 || index >= _screens.length || index == _currentIndex) {
+      return;
+    }
+    setState(() => _currentIndex = index);
+  }
 
   static const List<_NavItem> _items = [
     _NavItem(
