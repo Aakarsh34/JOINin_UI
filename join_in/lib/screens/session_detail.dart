@@ -315,10 +315,14 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Only the organizer gets the tappable
-                          // "view enrolled people" affordance — non-hosts
-                          // shouldn't see a chevron that goes nowhere.
-                          isOrganizer
+                          // Anyone enrolled (organizer or joined participant)
+                          // gets the tappable "view enrolled people"
+                          // affordance — the backend's
+                          // GET /sessions/:id/participants allows any
+                          // participant to read the roster, and the
+                          // organizer is auto-added to participants on
+                          // create, so isJoined covers both.
+                          isJoined
                               ? InkWell(
                                   onTap: () {
                                     HapticFeedback.selectionClick();
@@ -510,6 +514,11 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: context.cs.surface,
+      // The app theme sets `showDragHandle: true` globally on
+      // BottomSheetTheme, which would draw a second, lighter grab handle
+      // above our custom one. Disable it here so only our custom darker
+      // handle remains.
+      showDragHandle: false,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
