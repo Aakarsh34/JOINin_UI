@@ -26,7 +26,7 @@ android {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         // Pinned to 23 (Android 6.0) because Firebase Auth, Google Sign-In, and
         // flutter_secure_storage all crash at runtime on lower API levels.
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
