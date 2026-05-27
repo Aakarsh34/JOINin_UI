@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,8 +17,13 @@ import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Env must be ready before the first API call, but it only reads a small
+  // bundled asset (~10 ms) so it's still cheap to await up front.
   await Env.load();
-  await _initializeFirebaseSafely();
+  // Firebase init can race with the first frame: even if it ends up failing
+  // (e.g. no GoogleService-Info.plist in dev builds) we don't want it to add
+  // ~200-400 ms before runApp.
+  unawaited(_initializeFirebaseSafely());
   runApp(const JoinInApp());
 }
 
@@ -48,7 +55,7 @@ class JoinInApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeState.mode,
-            themeAnimationDuration: const Duration(milliseconds: 350),
+            themeAnimationDuration: const Duration(milliseconds: 200),
             themeAnimationCurve: Curves.easeInOutCubic,
             home: const _SystemChromeBinding(child: _AuthGate()),
             routes: {
@@ -96,20 +103,11 @@ class _AuthGate extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthState>();
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 400),
+      duration: const Duration(milliseconds: 220),
       switchInCurve: Curves.easeOutCubic,
       switchOutCurve: Curves.easeInCubic,
       transitionBuilder: (child, animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.04),
-              end: Offset.zero,
-            ).animate(animation),
-            child: child,
-          ),
-        );
+        return FadeTransition(opacity: animation, child: child);
       },
       child: KeyedSubtree(
         key: ValueKey(auth.status),

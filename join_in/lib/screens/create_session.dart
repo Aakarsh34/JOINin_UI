@@ -98,8 +98,9 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
             style: TextStyle(
                 color: AppTheme.darkBackground, fontWeight: FontWeight.bold)),
       ));
-      // Jump to the Home tab; HomeFeedScreen's KeyedSubtree gets remounted, so
-      // its initState fires a fresh _load() and the brand-new session appears.
+      // Jump to the Home tab. MainNavigation now keeps tabs alive via
+      // IndexedStack, but switchTo(0) explicitly asks the Home feed to do a
+      // silent refresh so the brand-new session appears at the top.
       MainNavigation.of(context)?.switchTo(0);
     } catch (e) {
       if (!mounted) return;

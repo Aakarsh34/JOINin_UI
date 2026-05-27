@@ -52,25 +52,27 @@ class AppTheme {
   static const Color textMuted = _darkOnSurfaceMuted;
 
   // ---- Theme builders -----------------------------------------------------
-  static ThemeData get darkTheme => _buildTheme(
-        brightness: Brightness.dark,
-        background: _darkBackground,
-        surface: _darkSurface,
-        surfaceElevated: _darkSurfaceElevated,
-        onSurface: _darkOnSurface,
-        onSurfaceMuted: _darkOnSurfaceMuted,
-        outline: _darkOutline,
-      );
+  // Cached so `MaterialApp` doesn't rebuild the whole ThemeData (including
+  // expensive GoogleFonts text themes) on every frame of the theme animation.
+  static final ThemeData darkTheme = _buildTheme(
+    brightness: Brightness.dark,
+    background: _darkBackground,
+    surface: _darkSurface,
+    surfaceElevated: _darkSurfaceElevated,
+    onSurface: _darkOnSurface,
+    onSurfaceMuted: _darkOnSurfaceMuted,
+    outline: _darkOutline,
+  );
 
-  static ThemeData get lightTheme => _buildTheme(
-        brightness: Brightness.light,
-        background: _lightBackground,
-        surface: _lightSurface,
-        surfaceElevated: _lightSurfaceElevated,
-        onSurface: _lightOnSurface,
-        onSurfaceMuted: _lightOnSurfaceMuted,
-        outline: _lightOutline,
-      );
+  static final ThemeData lightTheme = _buildTheme(
+    brightness: Brightness.light,
+    background: _lightBackground,
+    surface: _lightSurface,
+    surfaceElevated: _lightSurfaceElevated,
+    onSurface: _lightOnSurface,
+    onSurfaceMuted: _lightOnSurfaceMuted,
+    outline: _lightOutline,
+  );
 
   static ThemeData _buildTheme({
     required Brightness brightness,

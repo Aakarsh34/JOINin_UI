@@ -104,4 +104,35 @@ class AppUser {
     if (phone != null && phone!.isNotEmpty) return phone!;
     return 'User';
   }
+
+  /// Serializes the user back to a JSON-compatible map. Used by
+  /// [TokenStorage] to persist a snapshot so the next launch can render
+  /// MainNavigation before `/users/me` returns.
+  Map<String, dynamic> toJson() {
+    return {
+      '_id': id,
+      if (phone != null) 'phone': phone,
+      if (email != null) 'email': email,
+      if (googleId != null) 'googleId': googleId,
+      'authProvider': authProvider,
+      'name': name,
+      'photo': photo,
+      'bio': bio,
+      'activities': activities,
+      'skillLevels': skillLevels,
+      'privacySetting': privacySetting,
+      'stats': {
+        'hostedCount': stats.hostedCount,
+        'joinedCount': stats.joinedCount,
+        'completedCount': stats.completedCount,
+      },
+      'ratingStats': {
+        'avgRating': ratingStats.avgRating,
+        'totalRatings': ratingStats.totalRatings,
+      },
+      'isAdmin': isAdmin,
+      'isActive': isActive,
+      'canCreateSessions': canCreateSessions,
+    };
+  }
 }

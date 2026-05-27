@@ -7,6 +7,7 @@ class TokenStorage {
   static const _accessKey = 'access_token';
   static const _refreshKey = 'refresh_token';
   static const _userIdKey = 'user_id';
+  static const _userSnapshotKey = 'user_snapshot';
 
   // flutter_secure_storage 10.x stores values with custom AES ciphers on
   // Android by default (Jetpack Security's EncryptedSharedPreferences was
@@ -17,13 +18,23 @@ class TokenStorage {
 
   String? _accessTokenCache;
   String? _refreshTokenCache;
+  String? _userSnapshotCache;
 
   String? get accessToken => _accessTokenCache;
   String? get refreshToken => _refreshTokenCache;
+  String? get userSnapshot => _userSnapshotCache;
 
   Future<void> hydrate() async {
-    _accessTokenCache = await _storage.read(key: _accessKey);
-    _refreshTokenCache = await _storage.read(key: _refreshKey);
+    // Read everything in parallel so cold start finishes in a single round-trip
+    // to the secure store instead of three sequential reads.
+    final values = await Future.wait([
+      _storage.read(key: _accessKey),
+      _storage.read(key: _refreshKey),
+      _storage.read(key: _userSnapshotKey),
+    ]);
+    _accessTokenCache = values[0];
+    _refreshTokenCache = values[1];
+    _userSnapshotCache = values[2];
   }
 
   Future<void> save({
@@ -40,13 +51,20 @@ class TokenStorage {
     ]);
   }
 
+  Future<void> saveUserSnapshot(String json) async {
+    _userSnapshotCache = json;
+    await _storage.write(key: _userSnapshotKey, value: json);
+  }
+
   Future<void> clear() async {
     _accessTokenCache = null;
     _refreshTokenCache = null;
+    _userSnapshotCache = null;
     await Future.wait([
       _storage.delete(key: _accessKey),
       _storage.delete(key: _refreshKey),
       _storage.delete(key: _userIdKey),
+      _storage.delete(key: _userSnapshotKey),
     ]);
   }
 

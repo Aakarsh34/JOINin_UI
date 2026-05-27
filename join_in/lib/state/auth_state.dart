@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 
 import '../core/api_client.dart';
@@ -36,9 +39,32 @@ class AuthState extends ChangeNotifier {
       notifyListeners();
       return;
     }
+
+    // Optimistic path: if we cached the user from a previous run we render
+    // MainNavigation immediately and refresh `/users/me` in the background.
+    // This cuts the splash-to-home time on warm launches from ~1-2 s of
+    // network round-trip down to a single secure-storage read (~10-30 ms).
+    final cachedSnapshot = TokenStorage.instance.userSnapshot;
+    if (cachedSnapshot != null) {
+      try {
+        final decoded = json.decode(cachedSnapshot);
+        if (decoded is Map<String, dynamic>) {
+          _user = AppUser.fromJson(decoded);
+          _status = AuthStatus.signedIn;
+          notifyListeners();
+          SocketClient.instance.connect();
+          unawaited(_refreshProfileInBackground());
+          return;
+        }
+      } catch (_) {
+        // Fall through to the network path on corrupt cache.
+      }
+    }
+
     try {
       _user = await _users.getMe();
       _status = AuthStatus.signedIn;
+      unawaited(_persistUserSnapshot());
       SocketClient.instance.connect();
     } catch (_) {
       // The Dio interceptor already tries to refresh on 401 and signals via
@@ -50,6 +76,28 @@ class AuthState extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _refreshProfileInBackground() async {
+    try {
+      final fresh = await _users.getMe();
+      _user = fresh;
+      notifyListeners();
+      await _persistUserSnapshot();
+    } catch (_) {
+      // Network hiccup — keep the cached user on-screen and try again next
+      // bootstrap. Auth failures are handled by the Dio refresh interceptor.
+    }
+  }
+
+  Future<void> _persistUserSnapshot() async {
+    final user = _user;
+    if (user == null) return;
+    try {
+      await TokenStorage.instance.saveUserSnapshot(json.encode(user.toJson()));
+    } catch (_) {
+      // Cache write is best-effort; runtime user state is unaffected.
+    }
+  }
+
   Future<void> loginWithPhone({required String phone, String? name}) async {
     _setBusy(true);
     try {
@@ -59,6 +107,7 @@ class AuthState extends ChangeNotifier {
       _error = null;
       SocketClient.instance.connect();
       notifyListeners();
+      unawaited(_persistUserSnapshot());
     } catch (e) {
       _error = _readableError(e);
       rethrow;
@@ -76,6 +125,7 @@ class AuthState extends ChangeNotifier {
       _error = null;
       SocketClient.instance.connect();
       notifyListeners();
+      unawaited(_persistUserSnapshot());
     } catch (e) {
       _error = _readableError(e);
       rethrow;
@@ -89,6 +139,7 @@ class AuthState extends ChangeNotifier {
     try {
       _user = await _users.getMe();
       notifyListeners();
+      await _persistUserSnapshot();
     } catch (_) {}
   }
 

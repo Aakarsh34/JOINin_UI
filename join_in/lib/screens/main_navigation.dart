@@ -24,15 +24,6 @@ class MainNavigation extends StatefulWidget {
 class MainNavigationState extends State<MainNavigation> {
   int _currentIndex = 0;
 
-  /// Programmatically switch the active tab. Used after publishing a session
-  /// to jump the user back to the Home feed.
-  void switchTo(int index) {
-    if (index < 0 || index >= _screens.length || index == _currentIndex) {
-      return;
-    }
-    setState(() => _currentIndex = index);
-  }
-
   static const List<_NavItem> _items = [
     _NavItem(
         outlined: Icons.home_outlined, filled: Icons.home, label: 'Home'),
@@ -55,35 +46,62 @@ class MainNavigationState extends State<MainNavigation> {
         label: 'Profile'),
   ];
 
-  final List<Widget> _screens = const [
-    HomeFeedScreen(),
-    SearchScreen(),
-    CreateSessionScreen(),
-    DirectMessagesScreen(),
-    UserProfileScreen(),
-  ];
+  // Direct GlobalKey to the Home feed so we can ask it to refresh after the
+  // user publishes a new session, without tearing it down and re-running its
+  // initState() on every tab switch.
+  final GlobalKey<HomeFeedScreenState> _homeKey = GlobalKey<HomeFeedScreenState>();
+
+  // Lazily materialised so cold start only triggers Home's initial network
+  // call. Subsequent tabs are built the first time they are tapped and then
+  // kept alive by [IndexedStack].
+  late final List<Widget?> _screens = List<Widget?>.filled(_items.length, null);
+
+  @override
+  void initState() {
+    super.initState();
+    _screens[0] = HomeFeedScreen(key: _homeKey);
+  }
+
+  /// Programmatically switch the active tab. Used after publishing a session
+  /// to jump the user back to the Home feed and silently refresh it.
+  void switchTo(int index) {
+    if (index < 0 || index >= _items.length) return;
+    _ensureBuilt(index);
+    if (index == 0) {
+      _homeKey.currentState?.refresh();
+    }
+    if (index == _currentIndex) return;
+    setState(() => _currentIndex = index);
+  }
+
+  void _ensureBuilt(int index) {
+    if (_screens[index] != null) return;
+    _screens[index] = switch (index) {
+      0 => HomeFeedScreen(key: _homeKey),
+      1 => const SearchScreen(),
+      2 => const CreateSessionScreen(),
+      3 => const DirectMessagesScreen(),
+      4 => const UserProfileScreen(),
+      _ => const SizedBox.shrink(),
+    };
+  }
 
   void _onTap(int index) {
     if (index == _currentIndex) return;
     HapticFeedback.selectionClick();
+    _ensureBuilt(index);
     setState(() => _currentIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 250),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeIn,
-        transitionBuilder: (child, animation) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
-        child: KeyedSubtree(
-          key: ValueKey(_currentIndex),
-          child: _screens[_currentIndex],
-        ),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: [
+          for (int i = 0; i < _items.length; i++)
+            _screens[i] ?? const SizedBox.shrink(),
+        ],
       ),
       bottomNavigationBar: _BottomNav(
         items: _items,

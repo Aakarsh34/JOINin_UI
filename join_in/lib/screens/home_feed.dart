@@ -15,16 +15,21 @@ class HomeFeedScreen extends StatefulWidget {
   const HomeFeedScreen({super.key});
 
   @override
-  State<HomeFeedScreen> createState() => _HomeFeedScreenState();
+  State<HomeFeedScreen> createState() => HomeFeedScreenState();
 }
 
-class _HomeFeedScreenState extends State<HomeFeedScreen> {
+class HomeFeedScreenState extends State<HomeFeedScreen> {
   final SessionService _sessions = SessionService();
   bool _isLoading = true;
   bool _isMapView = false;
   SessionFilters _filters = SessionFilters.empty;
   List<Session> _items = [];
   String? _error;
+
+  /// Public entry point for parents (e.g. [MainNavigationState]) to trigger a
+  /// silent refresh — used after the user publishes a new session so the
+  /// Home tab picks it up without flashing a shimmer.
+  Future<void> refresh() => _load(silent: _items.isNotEmpty);
 
   /// Activity chips shown above the feed. The first entry maps to "All" and
   /// clears [SessionFilters.activityType].
@@ -44,11 +49,19 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     _load();
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  /// Loads sessions for the current filter set.
+  ///
+  /// When [silent] is true (e.g. on session-detail return or after publish)
+  /// we keep the existing list on-screen and only swap it in once the network
+  /// returns. This avoids the jarring shimmer flash users hit every time they
+  /// came back to the home tab.
+  Future<void> _load({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
     try {
       final paginated = await _sessions.list(
         activityType: _filters.activityType,
@@ -62,11 +75,16 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
       setState(() {
         _items = _sortLocally(paginated.items, _filters.sort);
         _isLoading = false;
+        _error = null;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        // On a silent refresh we keep showing the cached items and only
+        // surface the error if there is nothing to show.
+        if (!silent || _items.isEmpty) {
+          _error = e.toString();
+        }
         _isLoading = false;
       });
     }
@@ -376,7 +394,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                 MaterialPageRoute(
                     builder: (_) => SessionDetailScreen(
                         sessionId: session.id, initial: session)));
-            _load();
+            _load(silent: true);
           },
           child: Container(
             decoration: BoxDecoration(
