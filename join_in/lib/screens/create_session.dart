@@ -60,21 +60,41 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       _selectedTime!.hour,
       _selectedTime!.minute,
     );
+    // The backend enforces `dateTime > now`. If the user picked today + a
+    // time-of-day that's already passed (or even a minute in the past after
+    // tapping through the wizard), the create returns a generic 422 with
+    // little detail — catch it here so the error is obvious in-app.
+    if (!dt.isAfter(DateTime.now().add(const Duration(minutes: 1)))) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppTheme.danger,
+        content: const Text(
+            'Pick a date and time that is in the future (at least a few minutes from now).'),
+      ));
+      return;
+    }
     setState(() => _isLoading = true);
     try {
-      await _sessions.create({
+      final venueName = _venueNameController.text.trim().isEmpty
+          ? 'TBD'
+          : _venueNameController.text.trim();
+      final venueAddress = _venueAddressController.text.trim();
+      final description = _descriptionController.text.trim();
+      final body = <String, dynamic>{
         'title': title,
         // Backend stores this as `activityType`; from the user's perspective
         // it's just "the event category" (sports, music, outdoors, ...).
         'activityType': category.id,
         'venue': {
-          'name': _venueNameController.text.trim().isEmpty
-              ? 'TBD'
-              : _venueNameController.text.trim(),
-          'address': _venueAddressController.text.trim(),
+          'name': venueName,
+          // The backend's Joi schema treats `address` as a required non-empty
+          // string. Falling back to the venue name keeps the request valid
+          // while still giving the user something sensible to display.
+          'address': venueAddress.isEmpty ? venueName : venueAddress,
+          // GeoJSON [lng, lat] — must be doubles so the backend's
+          // `number().min(...).max(...)` precision checks pass cleanly.
           'coordinates': {
             'type': 'Point',
-            'coordinates': [0, 0]
+            'coordinates': <double>[0.0, 0.0],
           },
         },
         'dateTime': dt.toUtc().toIso8601String(),
@@ -82,9 +102,14 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         // Backend key is still `minPlayers`; surfaced as "min attendees".
         'minPlayers': _minAttendees,
         'skillLevel': _skillLevel == 'All Welcome' ? 'Beginner' : _skillLevel,
-        'description': _descriptionController.text.trim(),
         'isPublic': true,
-      });
+      };
+      // Description is optional on the backend; only send it when non-empty
+      // so we don't trip a `string().min(1)` validator with `""`.
+      if (description.isNotEmpty) {
+        body['description'] = description;
+      }
+      await _sessions.create(body);
       if (!mounted) return;
       // Pop any modal routes that may be sitting on top of MainNavigation
       // (date / time pickers, bottom sheets) before switching tabs.
@@ -104,6 +129,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
         content: Text(e.toString()),
+        duration: const Duration(seconds: 6),
       ));
     } finally {
       if (mounted) setState(() => _isLoading = false);

@@ -60,6 +60,42 @@ class ApiException implements Exception {
     );
   }
 
+  /// True when the server returned a 422 with a `details[]` payload (Joi/Zod
+  /// validation errors). Used by screens to surface field-level reasons.
+  bool get isValidationError => statusCode == 422 || code == 'VALIDATION_ERROR';
+
+  /// Flattens the structured `details[]` array the backend returns for
+  /// validation failures into a human-readable list of field messages. Falls
+  /// back to a plain string representation when the payload is shaped
+  /// differently. Returns an empty list when no details were attached.
+  List<String> get detailMessages {
+    final raw = details;
+    if (raw == null || raw.isEmpty) return const [];
+    final out = <String>[];
+    for (final entry in raw) {
+      if (entry is Map) {
+        final field = (entry['field'] ?? entry['path'] ?? entry['key'])?.toString();
+        final msg = (entry['message'] ?? entry['error'] ?? entry['reason'])?.toString();
+        if (field != null && msg != null) {
+          out.add('$field: $msg');
+        } else if (msg != null) {
+          out.add(msg);
+        } else if (field != null) {
+          out.add(field);
+        } else {
+          out.add(entry.toString());
+        }
+      } else if (entry != null) {
+        out.add(entry.toString());
+      }
+    }
+    return out;
+  }
+
   @override
-  String toString() => 'ApiException($statusCode $code): $message';
+  String toString() {
+    final detail = detailMessages;
+    if (detail.isEmpty) return message;
+    return '$message (${detail.join('; ')})';
+  }
 }
