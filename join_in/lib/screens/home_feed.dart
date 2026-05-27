@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../models/session.dart';
+import '../models/session_filters.dart';
 import '../services/session_service.dart';
 import '../theme.dart';
+import '../widgets/session_filter_sheet.dart';
 import '../widgets/shimmer.dart';
 import 'notifications_screen.dart';
 import 'session_detail.dart';
@@ -20,9 +22,21 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
   final SessionService _sessions = SessionService();
   bool _isLoading = true;
   bool _isMapView = false;
-  String _selectedFilter = 'All';
+  SessionFilters _filters = SessionFilters.empty;
   List<Session> _items = [];
   String? _error;
+
+  /// Activity chips shown above the feed. The first entry maps to "All" and
+  /// clears [SessionFilters.activityType].
+  static const _activityChips = <String>[
+    'All',
+    'Football',
+    'Cricket',
+    'Badminton',
+    'Basketball',
+    'Tennis',
+    'Pickleball',
+  ];
 
   @override
   void initState() {
@@ -37,13 +51,16 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     });
     try {
       final paginated = await _sessions.list(
-        activityType:
-            _selectedFilter == 'All' ? null : _selectedFilter.toLowerCase(),
-        limit: 30,
+        activityType: _filters.activityType,
+        dateFrom: _filters.dateFrom,
+        dateTo: _filters.dateTo,
+        skillLevel: _filters.skillLevel,
+        slotsAvailable: _filters.slotsAvailable,
+        limit: 50,
       );
       if (!mounted) return;
       setState(() {
-        _items = paginated.items;
+        _items = _sortLocally(paginated.items, _filters.sort);
         _isLoading = false;
       });
     } catch (e) {
@@ -55,35 +72,72 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     }
   }
 
-  void _showFilterSheet() {
+  /// Backend always returns upcoming sessions sorted ascending by `dateTime`.
+  /// For the other sort modes we re-order client-side so the user gets
+  /// immediate feedback without a second round-trip.
+  List<Session> _sortLocally(List<Session> source, SessionSort sort) {
+    final list = [...source];
+    switch (sort) {
+      case SessionSort.upcoming:
+        list.sort((a, b) {
+          final ad = a.dateTime;
+          final bd = b.dateTime;
+          if (ad == null && bd == null) return 0;
+          if (ad == null) return 1;
+          if (bd == null) return -1;
+          return ad.compareTo(bd);
+        });
+      case SessionSort.newest:
+        list.sort((a, b) {
+          final ad = a.createdAt;
+          final bd = b.createdAt;
+          if (ad == null && bd == null) return 0;
+          if (ad == null) return 1;
+          if (bd == null) return -1;
+          return bd.compareTo(ad);
+        });
+      case SessionSort.mostSlots:
+        list.sort((a, b) {
+          final aOpen = (a.totalSlots - a.filledSlots).clamp(0, a.totalSlots);
+          final bOpen = (b.totalSlots - b.filledSlots).clamp(0, b.totalSlots);
+          return bOpen.compareTo(aOpen);
+        });
+    }
+    return list;
+  }
+
+  Future<void> _openFilterSheet() async {
     HapticFeedback.selectionClick();
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-      builder: (sheetContext) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(24, 4, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Filters',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 16),
-              Text(
-                  'Coming soon — date, skill level and distance filters will be applied to the backend query.',
-                  style: TextStyle(
-                      color: context.cs.onSurfaceVariant, height: 1.5)),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                  onPressed: () => Navigator.pop(sheetContext),
-                  child: const Text('Close')),
-            ],
-          ),
-        );
-      },
-    );
+    final updated = await SessionFilterSheet.show(context, initial: _filters);
+    if (updated == null) return;
+    if (updated == _filters) return;
+    setState(() => _filters = updated);
+    _load();
+  }
+
+  void _setActivity(String chipLabel) {
+    final next = chipLabel == 'All' ? null : chipLabel.toLowerCase();
+    if (next == _filters.activityType) return;
+    HapticFeedback.selectionClick();
+    setState(() => _filters = _filters.copyWith(activityType: next));
+    _load();
+  }
+
+  void _clearAdvanced() {
+    HapticFeedback.selectionClick();
+    setState(() => _filters = SessionFilters(
+          activityType: _filters.activityType,
+          sort: _filters.sort,
+        ));
+    _load();
+  }
+
+  String? get _selectedActivityChip {
+    if (_filters.activityType == null) return 'All';
+    for (final chip in _activityChips) {
+      if (chip.toLowerCase() == _filters.activityType) return chip;
+    }
+    return null;
   }
 
   @override
@@ -116,35 +170,28 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(54),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Row(
-              children: [
-                _filterChip('Filters',
-                    icon: Icons.tune, selected: false, onTap: _showFilterSheet),
-                const SizedBox(width: 8),
-                for (final f in const [
-                  'All',
-                  'Football',
-                  'Cricket',
-                  'Badminton',
-                  'Basketball',
-                  'Tennis',
-                  'Pickleball'
-                ]) ...[
-                  _filterChip(f,
-                      selected: _selectedFilter == f,
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        setState(() => _selectedFilter = f);
-                        _load();
-                      }),
-                  const SizedBox(width: 8),
-                ],
-              ],
-            ),
+          preferredSize: Size.fromHeight(
+              _filters.hasAnyAdvanced ? 100 : 54),
+          child: Column(
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Row(
+                  children: [
+                    _filterButton(),
+                    const SizedBox(width: 8),
+                    for (final f in _activityChips) ...[
+                      _filterChip(f,
+                          selected: _selectedActivityChip == f,
+                          onTap: () => _setActivity(f)),
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ),
+              if (_filters.hasAnyAdvanced) _buildActiveFilterStrip(),
+            ],
           ),
         ),
       ),
@@ -236,12 +283,38 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                         size: 48, color: context.cs.onSurfaceVariant),
                   ),
                   const SizedBox(height: 20),
-                  const Text('No sessions yet',
-                      style: TextStyle(
+                  Text(
+                      _filters.hasAnyAdvanced ||
+                              _filters.activityType != null
+                          ? 'No matches for your filters'
+                          : 'No sessions yet',
+                      style: const TextStyle(
                           fontSize: 20, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
-                  Text('Be the first to host one!',
+                  Text(
+                      _filters.hasAnyAdvanced ||
+                              _filters.activityType != null
+                          ? 'Try widening the date range or clearing some filters.'
+                          : 'Be the first to host one!',
+                      textAlign: TextAlign.center,
                       style: TextStyle(color: context.cs.onSurfaceVariant)),
+                  if (_filters.hasAnyAdvanced ||
+                      _filters.activityType != null) ...[
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: 220,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          HapticFeedback.selectionClick();
+                          setState(
+                              () => _filters = SessionFilters.empty);
+                          _load();
+                        },
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Clear all filters'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -535,6 +608,158 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _filterButton() {
+    final hasActive = _filters.hasAnyAdvanced;
+    final count = _filters.advancedCount;
+    return GestureDetector(
+      onTap: _openFilterSheet,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: hasActive ? AppTheme.primaryGradient : null,
+          color: hasActive ? null : context.cs.surfaceContainerLow,
+          border: Border.all(
+            color: hasActive ? Colors.transparent : context.cs.outline,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.tune,
+                size: 16,
+                color: hasActive
+                    ? AppTheme.darkBackground
+                    : context.cs.onSurface),
+            const SizedBox(width: 6),
+            Text('Filters',
+                style: TextStyle(
+                    color: hasActive
+                        ? AppTheme.darkBackground
+                        : context.cs.onSurface,
+                    fontWeight:
+                        hasActive ? FontWeight.w800 : FontWeight.w600)),
+            if (hasActive) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                decoration: BoxDecoration(
+                  color: AppTheme.darkBackground.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text('$count',
+                    style: const TextStyle(
+                        color: AppTheme.darkBackground,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12)),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Strip of dismissible pills showing every advanced filter currently
+  /// applied. Each pill removes its own filter when tapped.
+  Widget _buildActiveFilterStrip() {
+    final pills = <Widget>[];
+    if (_filters.dateFrom != null && _filters.dateTo != null) {
+      final label =
+          '${DateFormat('MMM d').format(_filters.dateFrom!)} – ${DateFormat('MMM d').format(_filters.dateTo!)}';
+      pills.add(_activeFilterPill(
+        icon: Icons.event,
+        label: label,
+        onRemove: () {
+          HapticFeedback.selectionClick();
+          setState(() => _filters =
+              _filters.copyWith(dateFrom: null, dateTo: null));
+          _load();
+        },
+      ));
+    }
+    if (_filters.skillLevel != null) {
+      pills.add(_activeFilterPill(
+        icon: Icons.bolt,
+        label: _filters.skillLevel!,
+        onRemove: () {
+          HapticFeedback.selectionClick();
+          setState(() => _filters = _filters.copyWith(skillLevel: null));
+          _load();
+        },
+      ));
+    }
+    if (_filters.slotsAvailable == true) {
+      pills.add(_activeFilterPill(
+        icon: Icons.event_available,
+        label: 'Open slots',
+        onRemove: () {
+          HapticFeedback.selectionClick();
+          setState(
+              () => _filters = _filters.copyWith(slotsAvailable: null));
+          _load();
+        },
+      ));
+    }
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 0, 8, 12),
+        children: [
+          ...pills.expand((p) => [p, const SizedBox(width: 8)]),
+          TextButton.icon(
+            onPressed: _clearAdvanced,
+            icon: const Icon(Icons.close, size: 16),
+            label: const Text('Clear'),
+            style: TextButton.styleFrom(
+                foregroundColor: context.cs.onSurfaceVariant,
+                textStyle: const TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _activeFilterPill({
+    required IconData icon,
+    required String label,
+    required VoidCallback onRemove,
+  }) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryAccent.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+            color: AppTheme.primaryAccent.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: AppTheme.primaryAccent),
+          const SizedBox(width: 6),
+          Text(label,
+              style: const TextStyle(
+                  color: AppTheme.primaryAccent,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13)),
+          const SizedBox(width: 4),
+          InkWell(
+            onTap: onRemove,
+            customBorder: const CircleBorder(),
+            child: const Padding(
+              padding: EdgeInsets.all(2),
+              child: Icon(Icons.close,
+                  size: 14, color: AppTheme.primaryAccent),
+            ),
+          ),
+        ],
       ),
     );
   }
