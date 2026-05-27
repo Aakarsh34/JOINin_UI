@@ -40,13 +40,16 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
 
   Future<void> _continue() async {
     if (!_isValid) return;
+    HapticFeedback.mediumImpact();
     final auth = context.read<AuthState>();
     final messenger = ScaffoldMessenger.of(context);
     FocusScope.of(context).unfocus();
     try {
       await auth.loginWithPhone(
         phone: _fullPhone,
-        name: _nameController.text.trim().isEmpty ? null : _nameController.text.trim(),
+        name: _nameController.text.trim().isEmpty
+            ? null
+            : _nameController.text.trim(),
       );
       if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
@@ -62,10 +65,10 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   Future<void> _pickCountryCode() async {
     final picked = await showModalBottomSheet<String>(
       context: context,
-      backgroundColor: AppTheme.cardDarkElevated,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
       builder: (ctx) {
-        final entries = const [
+        const entries = [
           ('India', '+91'),
           ('United States', '+1'),
           ('United Kingdom', '+44'),
@@ -81,7 +84,10 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
             children: entries
                 .map((e) => ListTile(
                       title: Text(e.$1),
-                      trailing: Text(e.$2, style: const TextStyle(color: AppTheme.primaryAccent, fontWeight: FontWeight.bold)),
+                      trailing: Text(e.$2,
+                          style: const TextStyle(
+                              color: AppTheme.primaryAccent,
+                              fontWeight: FontWeight.bold)),
                       onTap: () => Navigator.pop(ctx, e.$2),
                     ))
                 .toList(),
@@ -90,6 +96,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
       },
     );
     if (picked != null) {
+      HapticFeedback.selectionClick();
       setState(() => _countryCode = picked);
     }
   }
@@ -98,11 +105,9 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthState>();
     return Scaffold(
-      backgroundColor: AppTheme.darkBackground,
       appBar: AppBar(
-        backgroundColor: AppTheme.darkBackground,
-        elevation: 0,
-        leading: const BackButton(color: AppTheme.textLight),
+        leading: const BackButton(),
+        title: const Text('Sign in', style: TextStyle(fontSize: 18)),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -119,51 +124,76 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
             children: [
               Text(
                 'Sign in with your phone',
-                style: Theme.of(context).textTheme.headlineLarge,
+                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'Enter your mobile number to continue. We\'ll create your account if you don\'t already have one.',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 15, height: 1.4),
+              Text(
+                "Enter your mobile number to continue. We'll create your account if you don't already have one.",
+                style: TextStyle(
+                    color: context.cs.onSurfaceVariant,
+                    fontSize: 15,
+                    height: 1.5),
               ),
               const SizedBox(height: 32),
-              const Text('Phone number', style: TextStyle(color: AppTheme.textMuted)),
+              Text('Phone number',
+                  style: TextStyle(
+                      color: context.cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: AppTheme.cardDark,
+                  color: context.cs.surfaceContainerLow,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white10),
+                  border: Border.all(color: context.cs.outline),
                 ),
                 child: Row(
                   children: [
-                    GestureDetector(
+                    InkWell(
                       onTap: _pickCountryCode,
+                      borderRadius: BorderRadius.circular(16),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 18),
                         child: Row(
                           children: [
-                            Text(_countryCode, style: const TextStyle(color: AppTheme.textLight, fontSize: 16, fontWeight: FontWeight.bold)),
-                            const Icon(Icons.expand_more, color: AppTheme.textMuted, size: 18),
+                            Text(_countryCode,
+                                style: TextStyle(
+                                    color: context.cs.onSurface,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold)),
+                            const SizedBox(width: 4),
+                            Icon(Icons.expand_more,
+                                color: context.cs.onSurfaceVariant, size: 18),
                           ],
                         ),
                       ),
                     ),
-                    Container(width: 1, height: 28, color: Colors.white10),
+                    Container(
+                        width: 1, height: 28, color: context.cs.outline),
                     Expanded(
                       child: TextField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
-                        style: const TextStyle(fontSize: 18, color: AppTheme.textLight, letterSpacing: 1),
+                        style: TextStyle(
+                            fontSize: 18,
+                            color: context.cs.onSurface,
+                            letterSpacing: 1),
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
                           LengthLimitingTextInputFormatter(15),
                         ],
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          filled: false,
                           hintText: '9876543210',
-                          hintStyle: TextStyle(color: AppTheme.textMuted),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                          hintStyle:
+                              TextStyle(color: context.cs.onSurfaceVariant),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 18),
                         ),
                         onChanged: (_) => setState(() {}),
                       ),
@@ -172,39 +202,37 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text('Your name (optional)', style: TextStyle(color: AppTheme.textMuted)),
+              Text('Your name (optional)',
+                  style: TextStyle(
+                      color: context.cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
               TextField(
                 controller: _nameController,
                 textCapitalization: TextCapitalization.words,
-                style: const TextStyle(fontSize: 16, color: AppTheme.textLight),
-                decoration: InputDecoration(
+                style: TextStyle(fontSize: 16, color: context.cs.onSurface),
+                decoration: const InputDecoration(
                   hintText: 'How should we call you?',
-                  hintStyle: const TextStyle(color: AppTheme.textMuted),
-                  filled: true,
-                  fillColor: AppTheme.cardDark,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Colors.white10),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Colors.white10),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               ElevatedButton(
                 onPressed: (_isValid && !auth.isBusy) ? _continue : null,
                 child: auth.isBusy
-                    ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(color: AppTheme.darkBackground, strokeWidth: 3))
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                            color: AppTheme.darkBackground, strokeWidth: 3))
                     : const Text('Continue'),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'Existing users keep their saved name. New users will be created automatically.',
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                style: TextStyle(
+                    color: context.cs.onSurfaceVariant,
+                    fontSize: 12,
+                    height: 1.5),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),

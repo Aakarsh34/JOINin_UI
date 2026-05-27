@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme.dart';
 
 class VoiceCallScreen extends StatefulWidget {
@@ -15,11 +16,13 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.darkBackground,
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF161B22), AppTheme.darkBackground],
+            colors: [
+              context.cs.surfaceContainerLow,
+              context.cs.surface,
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -28,46 +31,65 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
           child: Column(
             children: [
               const SizedBox(height: 60),
-              // Call Info
               Container(
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: AppTheme.primaryAccent.withValues(alpha: 0.2), blurRadius: 40, spreadRadius: 10)],
+                  boxShadow: [
+                    BoxShadow(
+                        color:
+                            AppTheme.primaryAccent.withValues(alpha: 0.22),
+                        blurRadius: 40,
+                        spreadRadius: 10)
+                  ],
                 ),
                 child: const CircleAvatar(
                   radius: 70,
-                  backgroundImage: NetworkImage('https://ui-avatars.com/api/?name=Raj+K&background=00B4D8&color=fff'),
+                  backgroundImage: NetworkImage(
+                      'https://ui-avatars.com/api/?name=Raj+K&background=00B4D8&color=fff'),
                 ),
               ),
               const SizedBox(height: 32),
-              const Text('Raj Krishnamurthy', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+              Text('Raj Krishnamurthy',
+                  style: TextStyle(
+                      color: context.cs.onSurface,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
-              const Text('02:45', style: TextStyle(color: AppTheme.primaryAccent, fontSize: 18, fontWeight: FontWeight.w500, letterSpacing: 2)),
-              
+              const Text('02:45',
+                  style: TextStyle(
+                      color: AppTheme.primaryAccent,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 2)),
               const Spacer(),
-              
-              // Controls
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildCallButton(
                     icon: _isMuted ? Icons.mic_off : Icons.mic,
-                    color: _isMuted ? Colors.white : Colors.white10,
-                    iconColor: _isMuted ? AppTheme.darkBackground : Colors.white,
-                    onTap: () => setState(() => _isMuted = !_isMuted),
+                    active: _isMuted,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _isMuted = !_isMuted);
+                    },
                   ),
                   _buildCallButton(
                     icon: Icons.call_end,
-                    color: Colors.redAccent,
+                    color: AppTheme.danger,
                     iconColor: Colors.white,
                     size: 72,
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      HapticFeedback.mediumImpact();
+                      Navigator.pop(context);
+                    },
                   ),
                   _buildCallButton(
                     icon: _isSpeaker ? Icons.volume_up : Icons.volume_down,
-                    color: _isSpeaker ? Colors.white : Colors.white10,
-                    iconColor: _isSpeaker ? AppTheme.darkBackground : Colors.white,
-                    onTap: () => setState(() => _isSpeaker = !_isSpeaker),
+                    active: _isSpeaker,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      setState(() => _isSpeaker = !_isSpeaker);
+                    },
                   ),
                 ],
               ),
@@ -81,17 +103,25 @@ class _VoiceCallScreenState extends State<VoiceCallScreen> {
 
   Widget _buildCallButton({
     required IconData icon,
-    required Color color,
-    required Color iconColor,
+    Color? color,
+    Color? iconColor,
+    bool active = false,
     required VoidCallback onTap,
     double size = 60,
   }) {
+    final resolvedColor = color ??
+        (active ? context.cs.onSurface : context.cs.surfaceContainerHigh);
+    final resolvedIconColor = iconColor ??
+        (active ? context.cs.surface : context.cs.onSurface);
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: size, height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        child: Icon(icon, color: iconColor, size: size * 0.45),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+            color: resolvedColor, shape: BoxShape.circle),
+        child: Icon(icon, color: resolvedIconColor, size: size * 0.45),
       ),
     );
   }

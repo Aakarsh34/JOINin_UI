@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../models/session.dart';
 import '../services/session_service.dart';
 import '../theme.dart';
+import '../widgets/shimmer.dart';
 import 'session_detail.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -59,6 +61,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void _onChanged(String value) {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 200), () {
+      if (!mounted) return;
       setState(() => _filtered = _applyQuery(_allSessions, value));
     });
   }
@@ -75,14 +78,14 @@ class _SearchScreenState extends State<SearchScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search'),
-        elevation: 0,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(70),
+          preferredSize: const Size.fromHeight(76),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: TextField(
               controller: _searchController,
               onChanged: _onChanged,
+              textInputAction: TextInputAction.search,
               decoration: InputDecoration(
                 hintText: 'Search activities, venues...',
                 prefixIcon: const Icon(Icons.search),
@@ -90,63 +93,181 @@ class _SearchScreenState extends State<SearchScreen> {
                     ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () {
+                          HapticFeedback.selectionClick();
                           _searchController.clear();
                           _onChanged('');
                         },
                       )
                     : null,
                 filled: true,
-                fillColor: Theme.of(context).cardColor,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                fillColor: context.cs.surfaceContainerLow,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide(color: context.cs.outline)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide(color: context.cs.outline)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: const BorderSide(
+                        color: AppTheme.primaryAccent, width: 1.5)),
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
             ),
           ),
         ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _filtered.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.search_off, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
-                      const SizedBox(height: 16),
-                      Text(_searchController.text.isEmpty ? 'Find your next game' : 'No matching sessions', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filtered.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final session = _filtered[index];
-                      final dateLabel = session.dateTime != null
-                          ? DateFormat('EEE, MMM d • h:mm a').format(session.dateTime!.toLocal())
-                          : 'TBD';
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        tileColor: Theme.of(context).cardColor,
-                        leading: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: AppTheme.secondaryAccent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                          child: const Icon(Icons.sports, color: AppTheme.secondaryAccent),
-                        ),
-                        title: Text(session.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('${session.activityType} • $dateLabel'),
-                        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                        onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => SessionDetailScreen(sessionId: session.id, initial: session)));
-                        },
-                      );
-                    },
-                  ),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 220),
+        child: KeyedSubtree(
+          key: ValueKey('${_loading}_${_filtered.length}'),
+          child: _loading
+              ? _buildSkeleton()
+              : _filtered.isEmpty
+                  ? _buildEmpty()
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _filtered.length,
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: 10),
+                        itemBuilder: (context, index) =>
+                            _buildResult(_filtered[index]),
+                      ),
+                    ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmpty() {
+    final isInitial = _searchController.text.isEmpty;
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        const SizedBox(height: 96),
+        Center(
+          child: Column(
+            children: [
+              Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: context.cs.surfaceContainerLow,
                 ),
+                child: Icon(
+                    isInitial ? Icons.search : Icons.search_off,
+                    size: 48,
+                    color: context.cs.onSurfaceVariant),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                  isInitial
+                      ? 'Find your next game'
+                      : 'No matching sessions',
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 6),
+              Text(
+                isInitial
+                    ? 'Search by sport, venue or city'
+                    : 'Try different keywords',
+                style: TextStyle(color: context.cs.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResult(Session session) {
+    final dateLabel = session.dateTime != null
+        ? DateFormat('EEE, MMM d • h:mm a').format(session.dateTime!.toLocal())
+        : 'TBD';
+    return Material(
+      color: context.cs.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => SessionDetailScreen(
+                      sessionId: session.id, initial: session)));
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                    color: AppTheme.secondaryAccent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14)),
+                child: const Icon(Icons.sports,
+                    color: AppTheme.secondaryAccent),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(session.title,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 15),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                    const SizedBox(height: 4),
+                    Text('${session.activityType} • $dateLabel',
+                        style: TextStyle(
+                            color: context.cs.onSurfaceVariant, fontSize: 13)),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right,
+                  color: context.cs.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeleton() {
+    return Shimmer(
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: 6,
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        itemBuilder: (context, index) => Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+              color: context.cs.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(18)),
+          child: const Row(
+            children: [
+              SkeletonBox(width: 48, height: 48, radius: 14),
+              SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SkeletonBox(width: 200, height: 14),
+                    SizedBox(height: 8),
+                    SkeletonBox(width: 140, height: 12),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -12,28 +13,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<Map<String, String>> _onboardingData = [
-    {
-      "title": "Discover Local Activities",
-      "subtitle": "Find people playing football, basketball, badminton, and more near you.",
-      "icon": "sports_tennis",
-    },
-    {
-      "title": "Host Your Own Sessions",
-      "subtitle": "Can't find what you're looking for? Host a session and let others join.",
-      "icon": "group_add",
-    },
-    {
-      "title": "Connect and Play",
-      "subtitle": "Chat with participants, make new friends, and build your community.",
-      "icon": "chat_bubble_outline",
-    },
+  final List<_OnboardingPage> _pages = const [
+    _OnboardingPage(
+      title: 'Discover Local Activities',
+      subtitle:
+          'Find people playing football, basketball, badminton, and more near you.',
+      icon: Icons.sports_tennis,
+    ),
+    _OnboardingPage(
+      title: 'Host Your Own Sessions',
+      subtitle:
+          "Can't find what you're looking for? Host a session and let others join.",
+      icon: Icons.group_add,
+    ),
+    _OnboardingPage(
+      title: 'Connect and Play',
+      subtitle:
+          'Chat with participants, make new friends, and build your community.',
+      icon: Icons.chat_bubble_outline,
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.darkBackground,
       body: SafeArea(
         child: Column(
           children: [
@@ -41,11 +44,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: PageView.builder(
                 controller: _pageController,
                 onPageChanged: (value) => setState(() => _currentPage = value),
-                itemCount: _onboardingData.length,
-                itemBuilder: (context, index) => OnboardingContent(
-                  title: _onboardingData[index]["title"]!,
-                  subtitle: _onboardingData[index]["subtitle"]!,
-                  iconData: _getIconData(_onboardingData[index]["icon"]!),
+                itemCount: _pages.length,
+                itemBuilder: (context, index) => _OnboardingContent(
+                  page: _pages[index],
                 ),
               ),
             ),
@@ -55,20 +56,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(_onboardingData.length, (index) => _buildDot(index: index)),
+                    children: List.generate(
+                        _pages.length, (index) => _buildDot(index: index)),
                   ),
                   const SizedBox(height: 32),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        if (_currentPage == _onboardingData.length - 1) {
+                        HapticFeedback.selectionClick();
+                        if (_currentPage == _pages.length - 1) {
                           Navigator.pushReplacementNamed(context, '/main');
                         } else {
-                          _pageController.nextPage(duration: const Duration(milliseconds: 300), curve: Curves.ease);
+                          _pageController.nextPage(
+                              duration: const Duration(milliseconds: 350),
+                              curve: Curves.easeOutCubic);
                         }
                       },
-                      child: Text(_currentPage == _onboardingData.length - 1 ? 'Get Started' : 'Next', style: const TextStyle(fontSize: 18, color: AppTheme.darkBackground)),
+                      child: Text(
+                        _currentPage == _pages.length - 1
+                            ? 'Get Started'
+                            : 'Next',
+                        style: const TextStyle(fontSize: 18),
+                      ),
                     ),
                   ),
                 ],
@@ -81,33 +91,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   AnimatedContainer _buildDot({required int index}) {
+    final active = _currentPage == index;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
       margin: const EdgeInsets.only(right: 8),
       height: 8,
-      width: _currentPage == index ? 24 : 8,
+      width: active ? 28 : 8,
       decoration: BoxDecoration(
-        color: _currentPage == index ? AppTheme.primaryAccent : Colors.white24,
+        gradient: active ? AppTheme.primaryGradient : null,
+        color: active ? null : context.cs.outline,
         borderRadius: BorderRadius.circular(4),
       ),
     );
   }
-
-  IconData _getIconData(String name) {
-    switch (name) {
-      case 'sports_tennis': return Icons.sports_tennis;
-      case 'group_add': return Icons.group_add;
-      case 'chat_bubble_outline': return Icons.chat_bubble_outline;
-      default: return Icons.sports;
-    }
-  }
 }
 
-class OnboardingContent extends StatelessWidget {
-  final String title, subtitle;
-  final IconData iconData;
+class _OnboardingPage {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  const _OnboardingPage({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+  });
+}
 
-  const OnboardingContent({super.key, required this.title, required this.subtitle, required this.iconData});
+class _OnboardingContent extends StatelessWidget {
+  final _OnboardingPage page;
+  const _OnboardingContent({required this.page});
 
   @override
   Widget build(BuildContext context) {
@@ -116,11 +129,40 @@ class OnboardingContent extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(iconData, size: 120, color: AppTheme.primaryAccent),
-          const SizedBox(height: 40),
-          Text(title, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold, color: Colors.white)),
+          Container(
+            width: 180,
+            height: 180,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.primaryAccent.withValues(alpha: 0.18),
+                  AppTheme.secondaryAccent.withValues(alpha: 0.10),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: Icon(page.icon, size: 96, color: AppTheme.primaryAccent),
+          ),
+          const SizedBox(height: 48),
+          Text(
+            page.title,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: context.cs.onSurface,
+                ),
+          ),
           const SizedBox(height: 16),
-          Text(subtitle, textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppTheme.textMuted)),
+          Text(
+            page.subtitle,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: context.cs.onSurfaceVariant,
+                  height: 1.5,
+                ),
+          ),
         ],
       ),
     );

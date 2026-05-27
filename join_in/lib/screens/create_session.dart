@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/session_service.dart';
 import '../theme.dart';
@@ -15,7 +16,14 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   int _currentStep = 0;
   bool _isLoading = false;
 
-  final List<String> _activities = ['football', 'cricket', 'badminton', 'basketball', 'tennis', 'pickleball'];
+  final List<String> _activities = const [
+    'football',
+    'cricket',
+    'badminton',
+    'basketball',
+    'tennis',
+    'pickleball'
+  ];
   String? _selectedActivity;
   final _titleController = TextEditingController();
   final _venueNameController = TextEditingController();
@@ -39,13 +47,17 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   Future<void> _publishSession() async {
     final activity = _selectedActivity;
     final title = _titleController.text.trim();
-    if (activity == null || title.isEmpty || _selectedDate == null || _selectedTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        backgroundColor: Colors.redAccent,
-        content: Text('Please fill out activity, title, date, and time.'),
+    if (activity == null ||
+        title.isEmpty ||
+        _selectedDate == null ||
+        _selectedTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppTheme.danger,
+        content: const Text('Please fill out activity, title, date, and time.'),
       ));
       return;
     }
+    HapticFeedback.mediumImpact();
     final dt = DateTime(
       _selectedDate!.year,
       _selectedDate!.month,
@@ -59,9 +71,14 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         'title': title,
         'activityType': activity,
         'venue': {
-          'name': _venueNameController.text.trim().isEmpty ? 'TBD' : _venueNameController.text.trim(),
+          'name': _venueNameController.text.trim().isEmpty
+              ? 'TBD'
+              : _venueNameController.text.trim(),
           'address': _venueAddressController.text.trim(),
-          'coordinates': {'type': 'Point', 'coordinates': [0, 0]},
+          'coordinates': {
+            'type': 'Point',
+            'coordinates': [0, 0]
+          },
         },
         'dateTime': dt.toUtc().toIso8601String(),
         'totalSlots': _slots,
@@ -73,13 +90,15 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         backgroundColor: AppTheme.primaryAccent,
-        content: Text('Session published!', style: TextStyle(color: AppTheme.darkBackground)),
+        content: Text('Session published!',
+            style: TextStyle(
+                color: AppTheme.darkBackground, fontWeight: FontWeight.bold)),
       ));
       Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: Colors.redAccent,
+        backgroundColor: AppTheme.danger,
         content: Text(e.toString()),
       ));
     } finally {
@@ -93,11 +112,16 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       appBar: AppBar(title: const Text('Create Session')),
       body: Column(
         children: [
-          LinearProgressIndicator(
-            value: (_currentStep + 1) / 5,
-            backgroundColor: AppTheme.cardDark,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryAccent),
-            minHeight: 6,
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutCubic,
+            child: LinearProgressIndicator(
+              value: (_currentStep + 1) / 5,
+              backgroundColor: context.cs.surfaceContainerLow,
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(AppTheme.primaryAccent),
+              minHeight: 4,
+            ),
           ),
           Expanded(
             child: Stepper(
@@ -105,38 +129,45 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               currentStep: _currentStep,
               onStepContinue: () {
                 if (_currentStep < 4) {
+                  HapticFeedback.selectionClick();
                   setState(() => _currentStep++);
                 } else {
                   _publishSession();
                 }
               },
               onStepCancel: () {
-                if (_currentStep > 0) setState(() => _currentStep--);
+                if (_currentStep > 0) {
+                  HapticFeedback.selectionClick();
+                  setState(() => _currentStep--);
+                }
               },
               controlsBuilder: (context, details) {
                 return Padding(
-                  padding: const EdgeInsets.only(top: 32.0),
+                  padding: const EdgeInsets.only(top: 24.0),
                   child: Row(
                     children: [
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : details.onStepContinue,
+                          onPressed:
+                              _isLoading ? null : details.onStepContinue,
                           child: _isLoading && _currentStep == 4
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: AppTheme.darkBackground))
-                              : Text(_currentStep == 4 ? 'Publish Session' : 'Continue'),
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      color: AppTheme.darkBackground))
+                              : Text(_currentStep == 4
+                                  ? 'Publish Session'
+                                  : 'Continue'),
                         ),
                       ),
-                      if (_currentStep > 0) const SizedBox(width: 16),
+                      if (_currentStep > 0) const SizedBox(width: 12),
                       if (_currentStep > 0)
                         Expanded(
                           child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 48),
-                              side: const BorderSide(color: AppTheme.textMuted),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            onPressed: _isLoading ? null : details.onStepCancel,
-                            child: const Text('Back', style: TextStyle(color: AppTheme.textLight, fontSize: 16)),
+                            onPressed:
+                                _isLoading ? null : details.onStepCancel,
+                            child: const Text('Back'),
                           ),
                         ),
                     ],
@@ -145,165 +176,180 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               },
               steps: [
                 Step(
-                  title: const Text('Activity & Title', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  title: const Text('Activity & Title',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w800)),
                   content: Padding(
                     padding: const EdgeInsets.only(top: 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
+                          spacing: 10,
+                          runSpacing: 10,
                           children: _activities
                               .map((act) => ChoiceChip(
-                                    label: Text(act[0].toUpperCase() + act.substring(1)),
+                                    label: Text(
+                                        act[0].toUpperCase() +
+                                            act.substring(1)),
                                     selected: _selectedActivity == act,
-                                    selectedColor: AppTheme.primaryAccent,
-                                    labelStyle: TextStyle(color: _selectedActivity == act ? AppTheme.darkBackground : AppTheme.textLight, fontWeight: FontWeight.bold),
-                                    backgroundColor: AppTheme.cardDark,
-                                    onSelected: (_) => setState(() => _selectedActivity = act),
+                                    onSelected: (_) {
+                                      HapticFeedback.selectionClick();
+                                      setState(
+                                          () => _selectedActivity = act);
+                                    },
                                   ))
                               .toList(),
                         ),
                         const SizedBox(height: 16),
                         TextField(
                           controller: _titleController,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: 'Session title',
-                            filled: true,
-                            fillColor: AppTheme.cardDark,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                           ),
                         ),
                       ],
                     ),
                   ),
                   isActive: _currentStep >= 0,
-                  state: _currentStep > 0 ? StepState.complete : StepState.indexed,
+                  state: _currentStep > 0
+                      ? StepState.complete
+                      : StepState.indexed,
                 ),
                 Step(
-                  title: const Text('Location', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  title: const Text('Location',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w800)),
                   content: Padding(
                     padding: const EdgeInsets.only(top: 16),
                     child: Column(
                       children: [
                         TextField(
                           controller: _venueNameController,
-                          decoration: InputDecoration(
-                            labelText: 'Venue name',
-                            filled: true,
-                            fillColor: AppTheme.cardDark,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                          ),
+                          decoration: const InputDecoration(
+                              labelText: 'Venue name'),
                         ),
                         const SizedBox(height: 12),
                         TextField(
                           controller: _venueAddressController,
-                          decoration: InputDecoration(
-                            labelText: 'Address (optional)',
-                            filled: true,
-                            fillColor: AppTheme.cardDark,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                          ),
+                          decoration: const InputDecoration(
+                              labelText: 'Address (optional)'),
                         ),
                       ],
                     ),
                   ),
                   isActive: _currentStep >= 1,
-                  state: _currentStep > 1 ? StepState.complete : StepState.indexed,
+                  state: _currentStep > 1
+                      ? StepState.complete
+                      : StepState.indexed,
                 ),
                 Step(
-                  title: const Text('Date & Time', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  title: const Text('Date & Time',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w800)),
                   content: Padding(
                     padding: const EdgeInsets.only(top: 16),
                     child: Row(
                       children: [
                         Expanded(
-                          child: InkWell(
+                          child: _pickerTile(
+                            icon: Icons.calendar_today,
+                            iconColor: AppTheme.primaryAccent,
+                            label: _selectedDate == null
+                                ? 'Select date'
+                                : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
                             onTap: () async {
                               final d = await showDatePicker(
                                 context: context,
-                                initialDate: DateTime.now().add(const Duration(days: 1)),
+                                initialDate: DateTime.now()
+                                    .add(const Duration(days: 1)),
                                 firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(const Duration(days: 60)),
+                                lastDate: DateTime.now()
+                                    .add(const Duration(days: 60)),
                               );
-                              if (d != null) setState(() => _selectedDate = d);
+                              if (d != null) {
+                                setState(() => _selectedDate = d);
+                              }
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 20),
-                              decoration: BoxDecoration(color: AppTheme.cardDark, borderRadius: BorderRadius.circular(16)),
-                              child: Column(
-                                children: [
-                                  const Icon(Icons.calendar_today, color: AppTheme.primaryAccent),
-                                  const SizedBox(height: 8),
-                                  Text(_selectedDate == null ? 'Select date' : '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                            ),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
                         Expanded(
-                          child: InkWell(
+                          child: _pickerTile(
+                            icon: Icons.access_time,
+                            iconColor: AppTheme.secondaryAccent,
+                            label: _selectedTime == null
+                                ? 'Select time'
+                                : _selectedTime!.format(context),
                             onTap: () async {
-                              final t = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 18, minute: 0));
-                              if (t != null) setState(() => _selectedTime = t);
+                              final t = await showTimePicker(
+                                  context: context,
+                                  initialTime: const TimeOfDay(
+                                      hour: 18, minute: 0));
+                              if (t != null) {
+                                setState(() => _selectedTime = t);
+                              }
                             },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 20),
-                              decoration: BoxDecoration(color: AppTheme.cardDark, borderRadius: BorderRadius.circular(16)),
-                              child: Column(
-                                children: [
-                                  const Icon(Icons.access_time, color: AppTheme.secondaryAccent),
-                                  const SizedBox(height: 8),
-                                  Text(_selectedTime == null ? 'Select time' : _selectedTime!.format(context), style: const TextStyle(fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
                   isActive: _currentStep >= 2,
-                  state: _currentStep > 2 ? StepState.complete : StepState.indexed,
+                  state: _currentStep > 2
+                      ? StepState.complete
+                      : StepState.indexed,
                 ),
                 Step(
-                  title: const Text('Players & Rules', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  title: const Text('Players & Rules',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w800)),
                   content: Padding(
                     padding: const EdgeInsets.only(top: 16),
                     child: Column(
                       children: [
-                        _buildStepperRow('Total Slots', _slots, (val) => setState(() => _slots = val), min: 2, max: 50),
+                        _buildStepperRow('Total Slots', _slots,
+                            (val) => setState(() => _slots = val),
+                            min: 2, max: 50),
+                        const SizedBox(height: 12),
+                        _buildStepperRow('Min Players', _minPlayers,
+                            (val) => setState(() => _minPlayers = val),
+                            min: 2, max: _slots),
                         const SizedBox(height: 16),
-                        _buildStepperRow('Min Players', _minPlayers, (val) => setState(() => _minPlayers = val), min: 2, max: _slots),
-                        const SizedBox(height: 24),
                         DropdownButtonFormField<String>(
                           initialValue: _skillLevel,
-                          decoration: InputDecoration(filled: true, fillColor: AppTheme.cardDark, border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none)),
-                          items: const ['Beginner', 'Intermediate', 'Advanced', 'All Welcome']
-                              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                          decoration: const InputDecoration(),
+                          items: const [
+                            'Beginner',
+                            'Intermediate',
+                            'Advanced',
+                            'All Welcome'
+                          ]
+                              .map((e) => DropdownMenuItem(
+                                  value: e, child: Text(e)))
                               .toList(),
-                          onChanged: (val) => setState(() => _skillLevel = val ?? 'All Welcome'),
+                          onChanged: (val) => setState(
+                              () => _skillLevel = val ?? 'All Welcome'),
                         ),
                       ],
                     ),
                   ),
                   isActive: _currentStep >= 3,
-                  state: _currentStep > 3 ? StepState.complete : StepState.indexed,
+                  state: _currentStep > 3
+                      ? StepState.complete
+                      : StepState.indexed,
                 ),
                 Step(
-                  title: const Text('Description', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  title: const Text('Description',
+                      style: TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.w800)),
                   content: Padding(
                     padding: const EdgeInsets.only(top: 16),
                     child: TextField(
                       controller: _descriptionController,
                       maxLines: 4,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         labelText: 'Tell people what to expect',
-                        filled: true,
-                        fillColor: AppTheme.cardDark,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                       ),
                     ),
                   ),
@@ -317,19 +363,86 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     );
   }
 
-  Widget _buildStepperRow(String label, int value, void Function(int) onChanged, {required int min, required int max}) {
+  Widget _pickerTile({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: context.cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: context.cs.outline),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: iconColor),
+            const SizedBox(height: 8),
+            Text(label,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepperRow(
+    String label,
+    int value,
+    void Function(int) onChanged, {
+    required int min,
+    required int max,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(color: AppTheme.cardDark, borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: context.cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.cs.outline),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(label,
+              style:
+                  const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
           Row(
             children: [
-              IconButton(icon: const Icon(Icons.remove_circle, color: AppTheme.textMuted), onPressed: value > min ? () => onChanged(value - 1) : null),
-              SizedBox(width: 30, child: Center(child: Text('$value', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)))),
-              IconButton(icon: const Icon(Icons.add_circle, color: AppTheme.primaryAccent), onPressed: value < max ? () => onChanged(value + 1) : null),
+              IconButton(
+                  icon: Icon(Icons.remove_circle,
+                      color: value > min
+                          ? context.cs.onSurface
+                          : context.cs.onSurfaceVariant),
+                  onPressed: value > min
+                      ? () {
+                          HapticFeedback.selectionClick();
+                          onChanged(value - 1);
+                        }
+                      : null),
+              SizedBox(
+                  width: 36,
+                  child: Center(
+                      child: Text('$value',
+                          style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold)))),
+              IconButton(
+                  icon: const Icon(Icons.add_circle,
+                      color: AppTheme.primaryAccent),
+                  onPressed: value < max
+                      ? () {
+                          HapticFeedback.selectionClick();
+                          onChanged(value + 1);
+                        }
+                      : null),
             ],
           )
         ],

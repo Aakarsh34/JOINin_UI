@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -66,11 +67,16 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.cloud_off, size: 56, color: AppTheme.textMuted),
+              Icon(Icons.cloud_off,
+                  size: 56, color: context.cs.onSurfaceVariant),
               const SizedBox(height: 16),
               Text(_error!, textAlign: TextAlign.center),
               const SizedBox(height: 16),
-              ElevatedButton(onPressed: _load, child: const Text('Try again')),
+              SizedBox(
+                width: 200,
+                child: ElevatedButton(
+                    onPressed: _load, child: const Text('Try again')),
+              ),
             ],
           ),
         ),
@@ -80,21 +86,31 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
         onRefresh: _load,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 120),
+          children: [
+            const SizedBox(height: 120),
             Center(
               child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
-                    Icon(Icons.forum_outlined, size: 64, color: AppTheme.textMuted),
-                    SizedBox(height: 16),
-                    Text('No conversations yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: context.cs.surfaceContainerLow),
+                      child: Icon(Icons.forum_outlined,
+                          size: 48, color: context.cs.onSurfaceVariant),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text('No conversations yet',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 6),
                     Text(
                       'Direct messages with other players will appear here.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppTheme.textMuted),
+                      style: TextStyle(color: context.cs.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -108,25 +124,35 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
         onRefresh: _load,
         child: ListView.separated(
           itemCount: _items.length,
-          separatorBuilder: (_, _) => const Divider(height: 1, color: Colors.white10, indent: 80),
+          separatorBuilder: (_, _) => Divider(
+              height: 1, color: context.cs.outline, indent: 80),
           itemBuilder: (context, index) {
             final conv = _items[index];
             final other = conv.otherParticipant(currentUserId);
             final lastMessage = conv.lastMessage;
             final timeLabel = conv.lastMessageAt != null
-                ? DateFormat('h:mm a').format(conv.lastMessageAt!.toLocal())
+                ? DateFormat('h:mm a')
+                    .format(conv.lastMessageAt!.toLocal())
                 : '';
             return ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20, vertical: 8),
               leading: CircleAvatar(
                 radius: 24,
-                backgroundColor: AppTheme.cardDarkElevated,
-                backgroundImage: other.photo.isNotEmpty ? NetworkImage(other.photo) : null,
+                backgroundColor: context.cs.surfaceContainerHigh,
+                backgroundImage: other.photo.isNotEmpty
+                    ? NetworkImage(other.photo)
+                    : null,
                 child: other.photo.isEmpty
-                    ? Text(other.name.isNotEmpty ? other.name[0].toUpperCase() : '?', style: const TextStyle(color: AppTheme.textLight))
+                    ? Text(
+                        other.name.isNotEmpty
+                            ? other.name[0].toUpperCase()
+                            : '?',
+                        style: TextStyle(color: context.cs.onSurface))
                     : null,
               ),
-              title: Text(other.name.isEmpty ? 'User' : other.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              title: Text(other.name.isEmpty ? 'User' : other.name,
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
               subtitle: Text(
                 lastMessage == null
                     ? 'Tap to chat'
@@ -135,25 +161,45 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
                         : lastMessage.content,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: conv.unreadCount > 0 ? AppTheme.textLight : AppTheme.textMuted),
+                style: TextStyle(
+                    color: conv.unreadCount > 0
+                        ? context.cs.onSurface
+                        : context.cs.onSurfaceVariant),
               ),
               trailing: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(timeLabel, style: TextStyle(color: conv.unreadCount > 0 ? AppTheme.primaryAccent : AppTheme.textMuted, fontSize: 12)),
+                  Text(timeLabel,
+                      style: TextStyle(
+                          color: conv.unreadCount > 0
+                              ? AppTheme.primaryAccent
+                              : context.cs.onSurfaceVariant,
+                          fontSize: 12)),
                   if (conv.unreadCount > 0) ...[
                     const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: AppTheme.primaryAccent, borderRadius: BorderRadius.circular(10)),
-                      child: Text('${conv.unreadCount}', style: const TextStyle(color: AppTheme.darkBackground, fontSize: 11, fontWeight: FontWeight.bold)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                          color: AppTheme.primaryAccent,
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Text('${conv.unreadCount}',
+                          style: const TextStyle(
+                              color: AppTheme.darkBackground,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ],
               ),
               onTap: () async {
-                await Navigator.push(context, MaterialPageRoute(builder: (_) => PrivateChatScreen(conversation: conv)));
+                HapticFeedback.selectionClick();
+                await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            PrivateChatScreen(conversation: conv)));
                 _load();
               },
             );
@@ -201,7 +247,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       }
     };
     SocketClient.instance.on('message', _onSocketMessage);
-    SocketClient.instance.emit('joinSession', {'sessionId': widget.session.id});
+    SocketClient.instance
+        .emit('joinSession', {'sessionId': widget.session.id});
     _joinedRoom = true;
     _load();
   }
@@ -209,7 +256,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   @override
   void dispose() {
     if (_joinedRoom) {
-      SocketClient.instance.emit('leaveSession', {'sessionId': widget.session.id});
+      SocketClient.instance
+          .emit('leaveSession', {'sessionId': widget.session.id});
     }
     SocketClient.instance.off('message', _onSocketMessage);
     _controller.dispose();
@@ -223,7 +271,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       _error = null;
     });
     try {
-      final paginated = await _service.messages(widget.session.id, limit: 30);
+      final paginated =
+          await _service.messages(widget.session.id, limit: 30);
       if (!mounted) return;
       setState(() {
         _messages = paginated.items.reversed.toList();
@@ -242,7 +291,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {
-        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+        );
       }
     });
   }
@@ -250,6 +303,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
+    HapticFeedback.lightImpact();
     _controller.clear();
     SocketClient.instance.emit('sendMessage', {
       'sessionId': widget.session.id,
@@ -273,7 +327,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 : _error != null
                     ? Center(child: Text(_error!))
                     : _messages.isEmpty
-                        ? const Center(child: Text('Say hi to your group!', style: TextStyle(color: AppTheme.textMuted)))
+                        ? Center(
+                            child: Text('Say hi to your group!',
+                                style: TextStyle(
+                                    color: context.cs.onSurfaceVariant)))
                         : ListView.builder(
                             controller: _scroll,
                             padding: const EdgeInsets.all(16),
@@ -292,32 +349,50 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Widget _bubble(ChatMessage msg, bool isMe) {
-    final time = msg.createdAt == null ? '' : DateFormat('h:mm a').format(msg.createdAt!.toLocal());
+    final time = msg.createdAt == null
+        ? ''
+        : DateFormat('h:mm a').format(msg.createdAt!.toLocal());
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: isMe ? AppTheme.primaryAccent : AppTheme.cardDarkElevated,
+          gradient: isMe ? AppTheme.primaryGradient : null,
+          color: isMe ? null : context.cs.surfaceContainerHigh,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isMe ? 16 : 4),
-            bottomRight: Radius.circular(isMe ? 4 : 16),
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft: Radius.circular(isMe ? 18 : 4),
+            bottomRight: Radius.circular(isMe ? 4 : 18),
           ),
         ),
         child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             if (!isMe)
-              Text(msg.sender.name.isEmpty ? 'Member' : msg.sender.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.secondaryAccent)),
+              Text(msg.sender.name.isEmpty ? 'Member' : msg.sender.name,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: AppTheme.secondaryAccent)),
             if (!isMe) const SizedBox(height: 4),
-            Text(msg.content, style: TextStyle(color: isMe ? AppTheme.darkBackground : AppTheme.textLight)),
+            Text(msg.content,
+                style: TextStyle(
+                    color: isMe
+                        ? AppTheme.darkBackground
+                        : context.cs.onSurface)),
             if (time.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(time, style: TextStyle(color: isMe ? AppTheme.darkBackground.withValues(alpha: 0.7) : AppTheme.textMuted, fontSize: 10)),
+              Text(time,
+                  style: TextStyle(
+                      color: isMe
+                          ? AppTheme.darkBackground.withValues(alpha: 0.7)
+                          : context.cs.onSurfaceVariant,
+                      fontSize: 10)),
             ],
           ],
         ),
@@ -326,41 +401,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Widget _inputBar() {
-    return Container(
-      color: AppTheme.cardDark,
-      padding: EdgeInsets.fromLTRB(
-        16,
-        12,
-        16,
-        12 + MediaQuery.viewPaddingOf(context).bottom,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _controller,
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) => _send(),
-              decoration: InputDecoration(
-                hintText: 'Message...',
-                hintStyle: const TextStyle(color: AppTheme.textMuted),
-                filled: true,
-                fillColor: AppTheme.darkBackground,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          CircleAvatar(
-            backgroundColor: _controller.text.isNotEmpty ? AppTheme.primaryAccent : AppTheme.cardDarkElevated,
-            child: IconButton(
-              icon: Icon(Icons.send, color: _controller.text.isNotEmpty ? AppTheme.darkBackground : AppTheme.textMuted, size: 20),
-              onPressed: _controller.text.isNotEmpty ? _send : null,
-            ),
-          ),
-        ],
-      ),
+    return _ChatInputBar(
+      controller: _controller,
+      onChanged: () => setState(() {}),
+      onSend: _send,
     );
   }
 }
@@ -390,7 +434,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
       if (raw is Map<String, dynamic>) {
         final convId = raw['conversationId']?.toString();
         final messageRaw = raw['message'];
-        if (convId == widget.conversation.id && messageRaw is Map<String, dynamic>) {
+        if (convId == widget.conversation.id &&
+            messageRaw is Map<String, dynamic>) {
           final msg = ChatMessage.fromJson(messageRaw);
           setState(() => _messages = [..._messages, msg]);
           _scrollToBottom();
@@ -415,7 +460,8 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
       _error = null;
     });
     try {
-      final paginated = await _service.messages(widget.conversation.id, limit: 30);
+      final paginated =
+          await _service.messages(widget.conversation.id, limit: 30);
       if (!mounted) return;
       setState(() {
         _messages = paginated.items.reversed.toList();
@@ -434,7 +480,11 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {
-        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+        _scroll.animateTo(
+          _scroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+        );
       }
     });
   }
@@ -442,6 +492,7 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
   Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
+    HapticFeedback.lightImpact();
     _controller.clear();
     SocketClient.instance.emit('sendDM', {
       'conversationId': widget.conversation.id,
@@ -462,9 +513,16 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
           children: [
             CircleAvatar(
               radius: 16,
-              backgroundColor: AppTheme.cardDarkElevated,
-              backgroundImage: other.photo.isNotEmpty ? NetworkImage(other.photo) : null,
-              child: other.photo.isEmpty ? Text(other.name.isNotEmpty ? other.name[0].toUpperCase() : '?', style: const TextStyle(fontSize: 12)) : null,
+              backgroundColor: context.cs.surfaceContainerHigh,
+              backgroundImage:
+                  other.photo.isNotEmpty ? NetworkImage(other.photo) : null,
+              child: other.photo.isEmpty
+                  ? Text(
+                      other.name.isNotEmpty
+                          ? other.name[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(fontSize: 12))
+                  : null,
             ),
             const SizedBox(width: 12),
             Text(other.name.isEmpty ? 'User' : other.name),
@@ -479,7 +537,11 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
                 : _error != null
                     ? Center(child: Text(_error!))
                     : _messages.isEmpty
-                        ? Center(child: Text('Start a conversation with ${other.name}', style: const TextStyle(color: AppTheme.textMuted)))
+                        ? Center(
+                            child: Text(
+                                'Start a conversation with ${other.name}',
+                                style: TextStyle(
+                                    color: context.cs.onSurfaceVariant)))
                         : ListView.builder(
                             controller: _scroll,
                             padding: const EdgeInsets.all(16),
@@ -491,41 +553,10 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
                             },
                           ),
           ),
-          Container(
-            color: AppTheme.cardDark,
-            padding: EdgeInsets.fromLTRB(
-              16,
-              12,
-              16,
-              12 + MediaQuery.viewPaddingOf(context).bottom,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _controller,
-                    onChanged: (_) => setState(() {}),
-                    onSubmitted: (_) => _send(),
-                    decoration: InputDecoration(
-                      hintText: 'Message...',
-                      hintStyle: const TextStyle(color: AppTheme.textMuted),
-                      filled: true,
-                      fillColor: AppTheme.darkBackground,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                CircleAvatar(
-                  backgroundColor: _controller.text.isNotEmpty ? AppTheme.primaryAccent : AppTheme.cardDarkElevated,
-                  child: IconButton(
-                    icon: Icon(Icons.send, color: _controller.text.isNotEmpty ? AppTheme.darkBackground : AppTheme.textMuted, size: 20),
-                    onPressed: _controller.text.isNotEmpty ? _send : null,
-                  ),
-                ),
-              ],
-            ),
+          _ChatInputBar(
+            controller: _controller,
+            onChanged: () => setState(() {}),
+            onSend: _send,
           ),
         ],
       ),
@@ -537,18 +568,114 @@ class _PrivateChatScreenState extends State<PrivateChatScreen> {
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: isMe ? AppTheme.primaryAccent : AppTheme.cardDarkElevated,
+          gradient: isMe ? AppTheme.primaryGradient : null,
+          color: isMe ? null : context.cs.surfaceContainerHigh,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isMe ? 16 : 4),
-            bottomRight: Radius.circular(isMe ? 4 : 16),
+            topLeft: const Radius.circular(18),
+            topRight: const Radius.circular(18),
+            bottomLeft: Radius.circular(isMe ? 18 : 4),
+            bottomRight: Radius.circular(isMe ? 4 : 18),
           ),
         ),
-        child: Text(msg.content, style: TextStyle(color: isMe ? AppTheme.darkBackground : AppTheme.textLight)),
+        child: Text(msg.content,
+            style: TextStyle(
+                color: isMe
+                    ? AppTheme.darkBackground
+                    : context.cs.onSurface)),
+      ),
+    );
+  }
+}
+
+/// Shared input bar used by both group and private chat screens.
+class _ChatInputBar extends StatelessWidget {
+  const _ChatInputBar({
+    required this.controller,
+    required this.onChanged,
+    required this.onSend,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+  final VoidCallback onSend;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasText = controller.text.trim().isNotEmpty;
+    return Container(
+      color: context.cs.surfaceContainerLow,
+      padding: EdgeInsets.fromLTRB(
+        12,
+        10,
+        12,
+        10 + MediaQuery.viewPaddingOf(context).bottom,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: controller,
+              onChanged: (_) => onChanged(),
+              onSubmitted: (_) => onSend(),
+              textInputAction: TextInputAction.send,
+              decoration: InputDecoration(
+                hintText: 'Message...',
+                filled: true,
+                fillColor: context.cs.surface,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide:
+                        BorderSide(color: context.cs.outline)),
+                enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide:
+                        BorderSide(color: context.cs.outline)),
+                focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                    borderSide: const BorderSide(
+                        color: AppTheme.primaryAccent, width: 1.5)),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 18, vertical: 12),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: hasText ? AppTheme.primaryGradient : null,
+              color: hasText ? null : context.cs.surfaceContainerHigh,
+              boxShadow: hasText
+                  ? [
+                      BoxShadow(
+                          color: AppTheme.primaryAccent
+                              .withValues(alpha: 0.4),
+                          blurRadius: 12,
+                          spreadRadius: 1),
+                    ]
+                  : null,
+            ),
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: Icon(
+                Icons.send,
+                color: hasText
+                    ? AppTheme.darkBackground
+                    : context.cs.onSurfaceVariant,
+                size: 20,
+              ),
+              onPressed: hasText ? onSend : null,
+            ),
+          ),
+        ],
       ),
     );
   }
