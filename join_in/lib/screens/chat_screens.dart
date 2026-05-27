@@ -108,7 +108,7 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
                             fontSize: 18, fontWeight: FontWeight.w800)),
                     const SizedBox(height: 6),
                     Text(
-                      'Direct messages with other players will appear here.',
+                      'Direct messages with other members will appear here.',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: context.cs.onSurfaceVariant),
                     ),

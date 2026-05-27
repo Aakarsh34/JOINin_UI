@@ -281,13 +281,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
             const SizedBox(height: 28),
-            _SectionHeader(label: 'Favorite Sports'),
+            _SectionHeader(label: 'Interests'),
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: user.activities.isEmpty
                   ? Text(
-                      'Add your sports in the profile editor to get better recommendations.',
+                      'Add your interests in the profile editor to get better recommendations.',
                       style: TextStyle(color: context.cs.onSurfaceVariant))
                   : Wrap(
                       spacing: 10,

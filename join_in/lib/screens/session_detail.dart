@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
+import '../models/event_category.dart';
 import '../models/session.dart';
 import '../services/session_service.dart';
 import '../state/auth_state.dart';
@@ -124,6 +125,12 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
     final timeLabel = session.dateTime != null
         ? DateFormat('h:mm a').format(session.dateTime!.toLocal())
         : '';
+    final category = EventCategory.forActivity(session.activityType);
+    final categoryLabel = category.id == EventCategory.other.id
+        ? (session.activityType.isEmpty
+            ? 'Event'
+            : '${session.activityType[0].toUpperCase()}${session.activityType.substring(1)}')
+        : category.label;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -142,28 +149,36 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
         onRefresh: _refresh,
         child: Stack(
           children: [
+            // Themed header. Uses the category color and emoji so a music
+            // event reads "music" at a glance, a hike reads "outdoors", etc.
+            // No more sports-only stock photo dictating the vibe.
             Positioned(
               top: 0,
               left: 0,
               right: 0,
               height: 320,
               child: Container(
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                      image: NetworkImage(
-                          'https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=1000&auto=format&fit=crop'),
-                      fit: BoxFit.cover),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      category.color.withValues(alpha: 0.85),
+                      category.color.withValues(alpha: 0.45),
+                      context.cs.surface,
+                    ],
+                    stops: const [0.0, 0.55, 1.0],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
                 ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.transparent,
-                        context.cs.surface,
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 80),
+                    child: Text(category.emoji,
+                        style: const TextStyle(
+                            fontSize: 84,
+                            shadows: [
+                              Shadow(blurRadius: 24, color: Colors.black38)
+                            ])),
                   ),
                 ),
               ),
@@ -187,13 +202,20 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                            color: AppTheme.secondaryAccent
-                                .withValues(alpha: 0.12),
+                            color: category.color.withValues(alpha: 0.14),
                             borderRadius: BorderRadius.circular(12)),
-                        child: Text(session.activityType,
-                            style: const TextStyle(
-                                color: AppTheme.secondaryAccent,
-                                fontWeight: FontWeight.bold)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(category.emoji,
+                                style: const TextStyle(fontSize: 14)),
+                            const SizedBox(width: 6),
+                            Text(categoryLabel,
+                                style: TextStyle(
+                                    color: category.color,
+                                    fontWeight: FontWeight.bold)),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(session.title,
@@ -210,7 +232,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                               child: _buildInfoCard(
                                   Icons.group,
                                   '${session.filledSlots}/${session.totalSlots}',
-                                  'players')),
+                                  'going')),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -294,7 +316,7 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                              'Slots (${session.filledSlots}/${session.totalSlots})',
+                              'Spots (${session.filledSlots}/${session.totalSlots})',
                               style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold)),
@@ -425,14 +447,14 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                                     strokeWidth: 3))
                             : Text(
                                 isOrganizer
-                                    ? "You're organizing"
+                                    ? "You're hosting"
                                     : isJoined
-                                        ? 'Leave session'
+                                        ? 'Leave event'
                                         : isWaitlisted
                                             ? 'Leave waitlist'
                                             : (isFull
                                                 ? 'Join waitlist'
-                                                : 'Join session'),
+                                                : 'Join event'),
                               ),
                       ),
                     ),

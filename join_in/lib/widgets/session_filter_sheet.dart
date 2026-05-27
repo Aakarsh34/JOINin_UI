@@ -146,7 +146,7 @@ class _SessionFilterSheetState extends State<SessionFilterSheet> {
                       onTap: _pickDateRange,
                     ),
                     const SizedBox(height: 24),
-                    _SectionTitle('Skill level'),
+                    _SectionTitle('Experience level'),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -176,10 +176,10 @@ class _SessionFilterSheetState extends State<SessionFilterSheet> {
                     _SectionTitle('Availability'),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Only sessions with open slots',
+                      title: const Text('Only events with open spots',
                           style: TextStyle(fontWeight: FontWeight.w600)),
                       subtitle: Text(
-                          'Hides sessions that are already full',
+                          'Hides events that are already full',
                           style: TextStyle(
                               color: context.cs.onSurfaceVariant,
                               fontSize: 12)),

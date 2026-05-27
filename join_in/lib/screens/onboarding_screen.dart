@@ -15,22 +15,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   final List<_OnboardingPage> _pages = const [
     _OnboardingPage(
-      title: 'Discover Local Activities',
+      title: 'Discover Local Events',
       subtitle:
-          'Find people playing football, basketball, badminton, and more near you.',
-      icon: Icons.sports_tennis,
+          'Pickup games, jam sessions, hikes, meetups, workshops — everything happening near you.',
+      icon: Icons.explore_outlined,
     ),
     _OnboardingPage(
-      title: 'Host Your Own Sessions',
+      title: 'Host Your Own',
       subtitle:
-          "Can't find what you're looking for? Host a session and let others join.",
-      icon: Icons.group_add,
+          "Can't find what you're looking for? Host an event in any category and let people join.",
+      icon: Icons.celebration_outlined,
     ),
     _OnboardingPage(
-      title: 'Connect and Play',
+      title: 'Connect with Your People',
       subtitle:
-          'Chat with participants, make new friends, and build your community.',
-      icon: Icons.chat_bubble_outline,
+          'Chat with attendees, make new friends, and grow your community around what you love.',
+      icon: Icons.groups_outlined,
     ),
   ];
 

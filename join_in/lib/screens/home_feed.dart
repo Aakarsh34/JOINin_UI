@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../models/event_category.dart';
 import '../models/session.dart';
 import '../models/session_filters.dart';
 import '../services/session_service.dart';
@@ -31,16 +32,14 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
   /// Home tab picks it up without flashing a shimmer.
   Future<void> refresh() => _load(silent: _items.isNotEmpty);
 
-  /// Activity chips shown above the feed. The first entry maps to "All" and
-  /// clears [SessionFilters.activityType].
-  static const _activityChips = <String>[
-    'All',
-    'Football',
-    'Cricket',
-    'Badminton',
-    'Basketball',
-    'Tennis',
-    'Pickleball',
+  /// Category chips shown above the feed.
+  ///
+  /// The first entry [EventCategory.all] clears the filter; the rest come
+  /// straight from the shared catalog so adding a new category in one place
+  /// makes it appear here, in the create flow and in search at the same time.
+  static final List<EventCategory> _categoryChips = <EventCategory>[
+    EventCategory.all,
+    ...EventCategory.catalog,
   ];
 
   @override
@@ -133,8 +132,8 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
     _load();
   }
 
-  void _setActivity(String chipLabel) {
-    final next = chipLabel == 'All' ? null : chipLabel.toLowerCase();
+  void _setCategory(EventCategory category) {
+    final next = category.id == EventCategory.all.id ? null : category.id;
     if (next == _filters.activityType) return;
     HapticFeedback.selectionClick();
     setState(() => _filters = _filters.copyWith(activityType: next));
@@ -150,12 +149,16 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
     _load();
   }
 
-  String? get _selectedActivityChip {
-    if (_filters.activityType == null) return 'All';
-    for (final chip in _activityChips) {
-      if (chip.toLowerCase() == _filters.activityType) return chip;
+  /// Which category chip should look "selected" right now. Falls back to
+  /// "All" when no category filter is active.
+  EventCategory get _selectedCategoryChip {
+    if (_filters.activityType == null) return EventCategory.all;
+    for (final c in _categoryChips) {
+      if (c.id == _filters.activityType) return c;
     }
-    return null;
+    // Unknown category (legacy data) — show no chip as selected so the user
+    // can still clear the filter via the chip row.
+    return EventCategory.all;
   }
 
   @override
@@ -199,10 +202,10 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
                   children: [
                     _filterButton(),
                     const SizedBox(width: 8),
-                    for (final f in _activityChips) ...[
-                      _filterChip(f,
-                          selected: _selectedActivityChip == f,
-                          onTap: () => _setActivity(f)),
+                    for (final c in _categoryChips) ...[
+                      _categoryChip(c,
+                          selected: _selectedCategoryChip.id == c.id,
+                          onTap: () => _setCategory(c)),
                       const SizedBox(width: 8),
                     ],
                   ],
@@ -305,7 +308,7 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
                       _filters.hasAnyAdvanced ||
                               _filters.activityType != null
                           ? 'No matches for your filters'
-                          : 'No sessions yet',
+                          : 'No events yet',
                       style: const TextStyle(
                           fontSize: 20, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 6),
@@ -351,14 +354,15 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
   }
 
   Widget _buildSessionCard(Session session) {
-    final lc = session.activityType.toLowerCase();
-    Color sportColor = AppTheme.secondaryAccent;
-    if (lc == 'football') sportColor = const Color(0xFF34D399);
-    if (lc == 'basketball') sportColor = const Color(0xFFFB923C);
-    if (lc == 'cricket') sportColor = const Color(0xFF60A5FA);
-    if (lc == 'tennis') sportColor = const Color(0xFFFDE68A);
-    if (lc == 'pickleball') sportColor = const Color(0xFFF472B6);
-    if (lc == 'badminton') sportColor = const Color(0xFFA78BFA);
+    final category = EventCategory.forActivity(session.activityType);
+    final categoryColor = category.color;
+    // Prefer the catalog's title-cased label so user-typed lowercase tags like
+    // `football` still render as "Sports", and `food` shows as "Food & Drink".
+    final categoryLabel = category.id == EventCategory.other.id
+        ? (session.activityType.isEmpty
+            ? 'Event'
+            : '${session.activityType[0].toUpperCase()}${session.activityType.substring(1)}')
+        : category.label;
 
     final dateLabel = session.dateTime != null
         ? DateFormat('EEE, MMM d • h:mm a').format(session.dateTime!.toLocal())
@@ -408,7 +412,7 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
               Container(
                 width: 6,
                 decoration: BoxDecoration(
-                    color: sportColor,
+                    color: categoryColor,
                     borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(20),
                         bottomLeft: Radius.circular(20))),
@@ -426,16 +430,16 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                                color: sportColor.withValues(alpha: 0.12),
+                                color: categoryColor.withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(12)),
                             child: Row(
                               children: [
-                                Text(_getSportEmoji(session.activityType),
+                                Text(category.emoji,
                                     style: const TextStyle(fontSize: 14)),
                                 const SizedBox(width: 4),
-                                Text(session.activityType,
+                                Text(categoryLabel,
                                     style: TextStyle(
-                                        color: sportColor,
+                                        color: categoryColor,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 12)),
                               ],
@@ -527,7 +531,7 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                    '${session.filledSlots}/${session.totalSlots} joined',
+                                    '${session.filledSlots}/${session.totalSlots} going',
                                     style: TextStyle(
                                         fontSize: 11,
                                         color: context.cs.onSurfaceVariant)),
@@ -563,25 +567,6 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
         ),
       ),
     );
-  }
-
-  String _getSportEmoji(String type) {
-    switch (type.toLowerCase()) {
-      case 'football':
-        return '⚽';
-      case 'badminton':
-        return '🏸';
-      case 'cricket':
-        return '🏏';
-      case 'basketball':
-        return '🏀';
-      case 'tennis':
-        return '🎾';
-      case 'pickleball':
-        return '🏓';
-      default:
-        return '🏅';
-    }
   }
 
   Widget _buildSkeletonLoader() {
@@ -716,7 +701,7 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
     if (_filters.slotsAvailable == true) {
       pills.add(_activeFilterPill(
         icon: Icons.event_available,
-        label: 'Open slots',
+        label: 'Open spots',
         onRemove: () {
           HapticFeedback.selectionClick();
           setState(
@@ -782,16 +767,17 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
     );
   }
 
-  Widget _filterChip(String label,
-      {IconData? icon,
-      required bool selected,
-      required VoidCallback onTap}) {
+  /// Pill-shaped chip showing a category (emoji + label). Tapping toggles the
+  /// `activityType` filter on the home feed.
+  Widget _categoryChip(EventCategory category,
+      {required bool selected, required VoidCallback onTap}) {
+    final isAll = category.id == EventCategory.all.id;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           gradient: selected ? AppTheme.primaryGradient : null,
           color: selected ? null : context.cs.surfaceContainerLow,
@@ -802,15 +788,16 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
         ),
         child: Row(
           children: [
-            if (icon != null) ...[
-              Icon(icon,
+            if (isAll)
+              Icon(category.icon,
                   size: 16,
                   color: selected
                       ? AppTheme.darkBackground
-                      : context.cs.onSurface),
-              const SizedBox(width: 6),
-            ],
-            Text(label,
+                      : context.cs.onSurface)
+            else
+              Text(category.emoji, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 6),
+            Text(category.label,
                 style: TextStyle(
                     color: selected
                         ? AppTheme.darkBackground

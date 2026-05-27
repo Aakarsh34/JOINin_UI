@@ -48,7 +48,7 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.sports_baseball,
+                    const Icon(Icons.groups_2_outlined,
                         size: 120, color: AppTheme.darkBackground),
                     const SizedBox(height: 24),
                     Text(
@@ -62,7 +62,7 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Find Your People. Build Your Community.',
+                      'Find Your People. Join Any Event.',
                       style: TextStyle(
                           color: AppTheme.darkBackground,
                           fontWeight: FontWeight.w600),

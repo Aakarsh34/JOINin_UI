@@ -75,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
                   padding: const EdgeInsets.all(24),
-                  child: const Icon(Icons.sports_baseball,
+                  child: const Icon(Icons.groups_2_outlined,
                       size: 56, color: AppTheme.darkBackground),
                 ),
               ),
@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Find local sports sessions, host your own,\nand connect with players nearby.',
+                'Find local events of every kind, host your own,\nand connect with people nearby.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: context.cs.onSurfaceVariant,

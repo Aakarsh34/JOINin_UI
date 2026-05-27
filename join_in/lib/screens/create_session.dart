@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../models/event_category.dart';
 import '../services/session_service.dart';
 import '../theme.dart';
 import 'main_navigation.dart';
@@ -17,15 +18,8 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   int _currentStep = 0;
   bool _isLoading = false;
 
-  final List<String> _activities = const [
-    'football',
-    'cricket',
-    'badminton',
-    'basketball',
-    'tennis',
-    'pickleball'
-  ];
-  String? _selectedActivity;
+  /// Currently selected catalog entry (or null until the user picks one).
+  EventCategory? _selectedCategory;
   final _titleController = TextEditingController();
   final _venueNameController = TextEditingController();
   final _venueAddressController = TextEditingController();
@@ -33,7 +27,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   int _slots = 10;
-  int _minPlayers = 5;
+  int _minAttendees = 2;
   String _skillLevel = 'All Welcome';
 
   @override
@@ -45,16 +39,16 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     super.dispose();
   }
 
-  Future<void> _publishSession() async {
-    final activity = _selectedActivity;
+  Future<void> _publishEvent() async {
+    final category = _selectedCategory;
     final title = _titleController.text.trim();
-    if (activity == null ||
+    if (category == null ||
         title.isEmpty ||
         _selectedDate == null ||
         _selectedTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         backgroundColor: AppTheme.danger,
-        content: const Text('Please fill out activity, title, date, and time.'),
+        content: const Text('Please fill out category, title, date, and time.'),
       ));
       return;
     }
@@ -70,7 +64,9 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
     try {
       await _sessions.create({
         'title': title,
-        'activityType': activity,
+        // Backend stores this as `activityType`; from the user's perspective
+        // it's just "the event category" (sports, music, outdoors, ...).
+        'activityType': category.id,
         'venue': {
           'name': _venueNameController.text.trim().isEmpty
               ? 'TBD'
@@ -83,7 +79,8 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
         },
         'dateTime': dt.toUtc().toIso8601String(),
         'totalSlots': _slots,
-        'minPlayers': _minPlayers,
+        // Backend key is still `minPlayers`; surfaced as "min attendees".
+        'minPlayers': _minAttendees,
         'skillLevel': _skillLevel == 'All Welcome' ? 'Beginner' : _skillLevel,
         'description': _descriptionController.text.trim(),
         'isPublic': true,
@@ -94,13 +91,13 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
       Navigator.of(context).popUntil((route) => route.isFirst);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         backgroundColor: AppTheme.primaryAccent,
-        content: Text('Session published!',
+        content: Text('Event published!',
             style: TextStyle(
                 color: AppTheme.darkBackground, fontWeight: FontWeight.bold)),
       ));
       // Jump to the Home tab. MainNavigation now keeps tabs alive via
       // IndexedStack, but switchTo(0) explicitly asks the Home feed to do a
-      // silent refresh so the brand-new session appears at the top.
+      // silent refresh so the brand-new event appears at the top.
       MainNavigation.of(context)?.switchTo(0);
     } catch (e) {
       if (!mounted) return;
@@ -116,7 +113,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Session')),
+      appBar: AppBar(title: const Text('Create Event')),
       body: Column(
         children: [
           AnimatedContainer(
@@ -139,7 +136,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                   HapticFeedback.selectionClick();
                   setState(() => _currentStep++);
                 } else {
-                  _publishSession();
+                  _publishEvent();
                 }
               },
               onStepCancel: () {
@@ -164,7 +161,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                                   child: CircularProgressIndicator(
                                       color: AppTheme.darkBackground))
                               : Text(_currentStep == 4
-                                  ? 'Publish Session'
+                                  ? 'Publish Event'
                                   : 'Continue'),
                         ),
                       ),
@@ -183,7 +180,7 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
               },
               steps: [
                 Step(
-                  title: const Text('Activity & Title',
+                  title: const Text('Category & Title',
                       style: TextStyle(
                           fontSize: 18, fontWeight: FontWeight.w800)),
                   content: Padding(
@@ -191,28 +188,35 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text('Pick a category',
+                            style: TextStyle(
+                                color: context.cs.onSurfaceVariant,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                                letterSpacing: 0.4)),
+                        const SizedBox(height: 10),
                         Wrap(
                           spacing: 10,
                           runSpacing: 10,
-                          children: _activities
-                              .map((act) => ChoiceChip(
-                                    label: Text(
-                                        act[0].toUpperCase() +
-                                            act.substring(1)),
-                                    selected: _selectedActivity == act,
-                                    onSelected: (_) {
+                          children: EventCategory.catalog
+                              .map((c) => _CategoryPickerChip(
+                                    category: c,
+                                    selected: _selectedCategory?.id == c.id,
+                                    onTap: () {
                                       HapticFeedback.selectionClick();
                                       setState(
-                                          () => _selectedActivity = act);
+                                          () => _selectedCategory = c);
                                     },
                                   ))
                               .toList(),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
                         TextField(
                           controller: _titleController,
                           decoration: const InputDecoration(
-                            labelText: 'Session title',
+                            labelText: 'Event title',
+                            hintText:
+                                'e.g. Sunday football, Open-mic night, Sunset hike',
                           ),
                         ),
                       ],
@@ -308,24 +312,26 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
                       : StepState.indexed,
                 ),
                 Step(
-                  title: const Text('Players & Rules',
+                  title: const Text('Capacity & Level',
                       style: TextStyle(
                           fontSize: 18, fontWeight: FontWeight.w800)),
                   content: Padding(
                     padding: const EdgeInsets.only(top: 16),
                     child: Column(
                       children: [
-                        _buildStepperRow('Total Slots', _slots,
+                        _buildStepperRow('Total Spots', _slots,
                             (val) => setState(() => _slots = val),
                             min: 2, max: 50),
                         const SizedBox(height: 12),
-                        _buildStepperRow('Min Players', _minPlayers,
-                            (val) => setState(() => _minPlayers = val),
+                        _buildStepperRow('Min Attendees', _minAttendees,
+                            (val) => setState(() => _minAttendees = val),
                             min: 2, max: _slots),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
                           initialValue: _skillLevel,
-                          decoration: const InputDecoration(),
+                          decoration: const InputDecoration(
+                            labelText: 'Experience level',
+                          ),
                           items: const [
                             'Beginner',
                             'Intermediate',
@@ -453,6 +459,57 @@ class _CreateSessionScreenState extends State<CreateSessionScreen> {
             ],
           )
         ],
+      ),
+    );
+  }
+}
+
+/// Pill chip rendered inside the "Category & Title" step. Shows the catalog
+/// emoji + label and visually fills with the category color when picked, so
+/// the user always knows what theme their event will adopt across the app.
+class _CategoryPickerChip extends StatelessWidget {
+  const _CategoryPickerChip({
+    required this.category,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final EventCategory category;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected
+              ? category.color.withValues(alpha: 0.18)
+              : context.cs.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected ? category.color : context.cs.outline,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(category.emoji, style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 8),
+            Text(category.label,
+                style: TextStyle(
+                    fontWeight:
+                        selected ? FontWeight.w800 : FontWeight.w600,
+                    color: selected
+                        ? category.color
+                        : context.cs.onSurface)),
+          ],
+        ),
       ),
     );
   }

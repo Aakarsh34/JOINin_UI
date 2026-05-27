@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../models/event_category.dart';
 import '../models/session.dart';
 import '../services/session_service.dart';
 import '../theme.dart';
@@ -87,7 +88,7 @@ class _SearchScreenState extends State<SearchScreen> {
               onChanged: _onChanged,
               textInputAction: TextInputAction.search,
               decoration: InputDecoration(
-                hintText: 'Search activities, venues...',
+                hintText: 'Search events, categories, venues...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -165,14 +166,14 @@ class _SearchScreenState extends State<SearchScreen> {
               const SizedBox(height: 20),
               Text(
                   isInitial
-                      ? 'Find your next game'
-                      : 'No matching sessions',
+                      ? 'Find your next event'
+                      : 'No matching events',
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
               Text(
                 isInitial
-                    ? 'Search by sport, venue or city'
+                    ? 'Search by category, venue or city'
                     : 'Try different keywords',
                 style: TextStyle(color: context.cs.onSurfaceVariant),
               ),
@@ -187,6 +188,10 @@ class _SearchScreenState extends State<SearchScreen> {
     final dateLabel = session.dateTime != null
         ? DateFormat('EEE, MMM d • h:mm a').format(session.dateTime!.toLocal())
         : 'TBD';
+    final category = EventCategory.forActivity(session.activityType);
+    final subtitleLabel = category.id == EventCategory.other.id
+        ? (session.activityType.isEmpty ? 'Event' : session.activityType)
+        : category.label;
     return Material(
       color: context.cs.surfaceContainerLow,
       borderRadius: BorderRadius.circular(18),
@@ -207,11 +212,12 @@ class _SearchScreenState extends State<SearchScreen> {
               Container(
                 width: 48,
                 height: 48,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                    color: AppTheme.secondaryAccent.withValues(alpha: 0.12),
+                    color: category.color.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(14)),
-                child: const Icon(Icons.sports,
-                    color: AppTheme.secondaryAccent),
+                child:
+                    Text(category.emoji, style: const TextStyle(fontSize: 24)),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -224,7 +230,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 4),
-                    Text('${session.activityType} • $dateLabel',
+                    Text('$subtitleLabel • $dateLabel',
                         style: TextStyle(
                             color: context.cs.onSurfaceVariant, fontSize: 13)),
                   ],

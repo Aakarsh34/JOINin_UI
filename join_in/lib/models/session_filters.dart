@@ -93,7 +93,7 @@ extension SessionSortX on SessionSort {
       case SessionSort.newest:
         return 'Newest first';
       case SessionSort.mostSlots:
-        return 'Most slots open';
+        return 'Most spots open';
     }
   }
 }
