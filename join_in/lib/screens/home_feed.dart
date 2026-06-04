@@ -202,12 +202,11 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
                   children: [
                     _filterButton(),
                     const SizedBox(width: 8),
-                    for (final c in _categoryChips) ...[
-                      _categoryChip(c,
-                          selected: _selectedCategoryChip.id == c.id,
-                          onTap: () => _setCategory(c)),
-                      const SizedBox(width: 8),
-                    ],
+                    _CategorySelector(
+                      categories: _categoryChips,
+                      selectedId: _selectedCategoryChip.id,
+                      onSelected: _setCategory,
+                    ),
                   ],
                 ),
               ),
@@ -767,20 +766,157 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
     );
   }
 
-  /// Pill-shaped chip showing a category (emoji + label). Tapping toggles the
-  /// `activityType` filter on the home feed.
-  Widget _categoryChip(EventCategory category,
-      {required bool selected, required VoidCallback onTap}) {
+}
+
+/// A horizontal row of category chips with a single gradient "pill" that
+/// physically slides to whichever chip is selected, instead of each chip
+/// toggling its own background. The pill is an [AnimatedPositioned] living
+/// behind the (transparent) chips inside a [Stack]; chip rects are measured
+/// after layout so the pill lands exactly under the active chip regardless of
+/// variable label widths.
+class _CategorySelector extends StatefulWidget {
+  const _CategorySelector({
+    required this.categories,
+    required this.selectedId,
+    required this.onSelected,
+  });
+
+  final List<EventCategory> categories;
+  final String selectedId;
+  final ValueChanged<EventCategory> onSelected;
+
+  @override
+  State<_CategorySelector> createState() => _CategorySelectorState();
+}
+
+class _CategorySelectorState extends State<_CategorySelector> {
+  static const double _gap = 8;
+
+  final GlobalKey _stackKey = GlobalKey();
+  late List<GlobalKey> _chipKeys;
+  List<Rect> _rects = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _chipKeys =
+        List.generate(widget.categories.length, (_) => GlobalKey());
+    _scheduleMeasure();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CategorySelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.categories.length != widget.categories.length) {
+      _chipKeys =
+          List.generate(widget.categories.length, (_) => GlobalKey());
+    }
+    // Re-measure on any rebuild (selection change, font reflow, etc.) so the
+    // pill keeps tracking the right chip.
+    _scheduleMeasure();
+  }
+
+  void _scheduleMeasure() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
+  }
+
+  void _measure() {
+    if (!mounted) return;
+    final stackBox = _stackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (stackBox == null || !stackBox.hasSize) return;
+    final next = <Rect>[];
+    for (final key in _chipKeys) {
+      final box = key.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) {
+        next.add(Rect.zero);
+        continue;
+      }
+      final origin = box.localToGlobal(Offset.zero, ancestor: stackBox);
+      next.add(origin & box.size);
+    }
+    if (!_rectsEqual(next, _rects)) {
+      setState(() => _rects = next);
+    }
+  }
+
+  bool _rectsEqual(List<Rect> a, List<Rect> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  int get _selectedIndex {
+    final idx =
+        widget.categories.indexWhere((c) => c.id == widget.selectedId);
+    return idx < 0 ? 0 : idx;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedIndex = _selectedIndex;
+    final hasRects = _rects.length == widget.categories.length &&
+        selectedIndex < _rects.length &&
+        _rects[selectedIndex].width > 0;
+    final pillRect = hasRects ? _rects[selectedIndex] : null;
+
+    return Stack(
+      key: _stackKey,
+      children: [
+        // Sliding gradient pill. Only painted once we have real measurements
+        // so it never flashes at the wrong position on first layout.
+        if (pillRect != null)
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOutCubic,
+            left: pillRect.left,
+            top: pillRect.top,
+            width: pillRect.width,
+            height: pillRect.height,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+        Row(
+          children: [
+            for (var i = 0; i < widget.categories.length; i++) ...[
+              _chip(
+                key: _chipKeys[i],
+                category: widget.categories[i],
+                selected: i == selectedIndex,
+              ),
+              if (i != widget.categories.length - 1)
+                const SizedBox(width: _gap),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _chip({
+    required Key key,
+    required EventCategory category,
+    required bool selected,
+  }) {
     final isAll = category.id == EventCategory.all.id;
+    final fg = selected ? AppTheme.darkBackground : context.cs.onSurface;
     return GestureDetector(
-      onTap: onTap,
+      key: key,
+      behavior: HitTestBehavior.opaque,
+      onTap: () => widget.onSelected(category),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          gradient: selected ? AppTheme.primaryGradient : null,
-          color: selected ? null : context.cs.surfaceContainerLow,
+          // Transparent so the sliding pill behind shows through; unselected
+          // chips get a subtle outline to stay legible against the feed.
+          color: Colors.transparent,
           border: Border.all(
             color: selected ? Colors.transparent : context.cs.outline,
           ),
@@ -789,21 +925,18 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
         child: Row(
           children: [
             if (isAll)
-              Icon(category.icon,
-                  size: 16,
-                  color: selected
-                      ? AppTheme.darkBackground
-                      : context.cs.onSurface)
+              Icon(category.icon, size: 16, color: fg)
             else
               Text(category.emoji, style: const TextStyle(fontSize: 14)),
             const SizedBox(width: 6),
-            Text(category.label,
-                style: TextStyle(
-                    color: selected
-                        ? AppTheme.darkBackground
-                        : context.cs.onSurface,
-                    fontWeight:
-                        selected ? FontWeight.w800 : FontWeight.w600)),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                color: fg,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+              ),
+              child: Text(category.label),
+            ),
           ],
         ),
       ),
