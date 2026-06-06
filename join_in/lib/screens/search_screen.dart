@@ -8,6 +8,7 @@ import '../models/event_category.dart';
 import '../models/session.dart';
 import '../services/session_service.dart';
 import '../theme.dart';
+import '../widgets/animations.dart';
 import '../widgets/shimmer.dart';
 import 'session_detail.dart';
 
@@ -133,8 +134,11 @@ class _SearchScreenState extends State<SearchScreen> {
                         itemCount: _filtered.length,
                         separatorBuilder: (_, _) =>
                             const SizedBox(height: 10),
-                        itemBuilder: (context, index) =>
-                            _buildResult(_filtered[index]),
+                        itemBuilder: (context, index) => FadeSlideIn(
+                          delay: Duration(
+                              milliseconds: (index.clamp(0, 8)) * 50),
+                          child: _buildResult(_filtered[index]),
+                        ),
                       ),
                     ),
         ),
@@ -192,7 +196,8 @@ class _SearchScreenState extends State<SearchScreen> {
     final subtitleLabel = category.id == EventCategory.other.id
         ? (session.activityType.isEmpty ? 'Event' : session.activityType)
         : category.label;
-    return Material(
+    return Pressable(
+      child: Material(
       color: context.cs.surfaceContainerLow,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
@@ -241,6 +246,7 @@ class _SearchScreenState extends State<SearchScreen> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

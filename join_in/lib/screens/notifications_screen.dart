@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../models/notification.dart';
 import '../services/notification_service.dart';
 import '../theme.dart';
+import '../widgets/animations.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -91,8 +92,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         itemCount: _items.length,
                         separatorBuilder: (_, _) => Divider(
                             color: context.cs.outline, height: 1),
-                        itemBuilder: (context, index) =>
-                            _buildTile(_items[index]),
+                        itemBuilder: (context, index) => FadeSlideIn(
+                          delay: Duration(
+                              milliseconds: (index.clamp(0, 8)) * 50),
+                          child: _buildTile(_items[index]),
+                        ),
                       ),
                     ),
     );

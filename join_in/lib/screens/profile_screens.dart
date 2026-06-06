@@ -7,6 +7,7 @@ import '../services/user_service.dart';
 import '../state/auth_state.dart';
 import '../state/theme_state.dart';
 import '../theme.dart';
+import '../widgets/animations.dart';
 import '../widgets/theme_toggle.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -248,7 +249,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           children: [
             _buildHeader(user),
             const SizedBox(height: 16),
-            Padding(
+            FadeSlideIn(
+              child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 18),
@@ -280,10 +282,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
               ),
             ),
+            ),
             const SizedBox(height: 28),
-            _SectionHeader(label: 'Interests'),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 70),
+              child: _SectionHeader(label: 'Interests'),
+            ),
             const SizedBox(height: 12),
-            Padding(
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 110),
+              child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: user.activities.isEmpty
                   ? Text(
@@ -308,27 +316,40 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           .toList(),
                     ),
             ),
+            ),
             const SizedBox(height: 28),
-            _SectionHeader(label: 'Settings'),
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 150),
+              child: _SectionHeader(label: 'Settings'),
+            ),
             const SizedBox(height: 8),
-            _SettingsTile(
-              icon: Icons.palette_outlined,
-              title: 'Appearance',
-              subtitle: _appearanceLabel(context),
-              onTap: _showAppearanceSheet,
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 190),
+              child: _SettingsTile(
+                icon: Icons.palette_outlined,
+                title: 'Appearance',
+                subtitle: _appearanceLabel(context),
+                onTap: _showAppearanceSheet,
+              ),
             ),
-            _SettingsTile(
-              icon: Icons.edit_outlined,
-              title: 'Edit profile',
-              subtitle: 'Update your name, bio and photo',
-              onTap: _editProfile,
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 230),
+              child: _SettingsTile(
+                icon: Icons.edit_outlined,
+                title: 'Edit profile',
+                subtitle: 'Update your name, bio and photo',
+                onTap: _editProfile,
+              ),
             ),
-            _SettingsTile(
-              icon: Icons.logout,
-              title: 'Sign out',
-              subtitle: 'Sign out of your account',
-              destructive: true,
-              onTap: _signOut,
+            FadeSlideIn(
+              delay: const Duration(milliseconds: 270),
+              child: _SettingsTile(
+                icon: Icons.logout,
+                title: 'Sign out',
+                subtitle: 'Sign out of your account',
+                destructive: true,
+                onTap: _signOut,
+              ),
             ),
             const SizedBox(height: 40),
           ],

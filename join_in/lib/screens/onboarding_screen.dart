@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme.dart';
+import '../widgets/animations.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -129,39 +130,52 @@ class _OnboardingContent extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            width: 180,
-            height: 180,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primaryAccent.withValues(alpha: 0.18),
-                  AppTheme.secondaryAccent.withValues(alpha: 0.10),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          FadeSlideIn(
+            key: ValueKey('icon_${page.title}'),
+            beginOffset: const Offset(0, 0.16),
+            duration: const Duration(milliseconds: 520),
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryAccent.withValues(alpha: 0.18),
+                    AppTheme.secondaryAccent.withValues(alpha: 0.10),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
               ),
+              child: Icon(page.icon, size: 96, color: AppTheme.primaryAccent),
             ),
-            child: Icon(page.icon, size: 96, color: AppTheme.primaryAccent),
           ),
           const SizedBox(height: 48),
-          Text(
-            page.title,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: context.cs.onSurface,
-                ),
+          FadeSlideIn(
+            key: ValueKey('title_${page.title}'),
+            delay: const Duration(milliseconds: 90),
+            child: Text(
+              page.title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: context.cs.onSurface,
+                  ),
+            ),
           ),
           const SizedBox(height: 16),
-          Text(
-            page.subtitle,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: context.cs.onSurfaceVariant,
-                  height: 1.5,
-                ),
+          FadeSlideIn(
+            key: ValueKey('subtitle_${page.title}'),
+            delay: const Duration(milliseconds: 170),
+            child: Text(
+              page.subtitle,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: context.cs.onSurfaceVariant,
+                    height: 1.5,
+                  ),
+            ),
           ),
         ],
       ),

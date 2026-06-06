@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../services/google_sign_in_service.dart';
 import '../../state/auth_state.dart';
 import '../../theme.dart';
+import '../../widgets/animations.dart';
 import 'phone_login_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -61,45 +62,57 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Spacer(),
-              Center(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryAccent.withValues(alpha: 0.35),
-                        blurRadius: 40,
-                        spreadRadius: 4,
-                      ),
-                    ],
+              FadeSlideIn(
+                beginOffset: const Offset(0, 0.18),
+                child: Center(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color:
+                              AppTheme.primaryAccent.withValues(alpha: 0.35),
+                          blurRadius: 40,
+                          spreadRadius: 4,
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.all(24),
+                    child: const Icon(Icons.groups_2_outlined,
+                        size: 56, color: AppTheme.darkBackground),
                   ),
-                  padding: const EdgeInsets.all(24),
-                  child: const Icon(Icons.groups_2_outlined,
-                      size: 56, color: AppTheme.darkBackground),
                 ),
               ),
               const SizedBox(height: 28),
-              Text(
-                'Welcome to JoinIn',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                    ),
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 120),
+                child: Text(
+                  'Welcome to JoinIn',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
               ),
               const SizedBox(height: 12),
-              Text(
-                'Find local events of every kind, host your own,\nand connect with people nearby.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: context.cs.onSurfaceVariant,
-                  fontSize: 15,
-                  height: 1.5,
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 200),
+                child: Text(
+                  'Find local events of every kind, host your own,\nand connect with people nearby.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: context.cs.onSurfaceVariant,
+                    fontSize: 15,
+                    height: 1.5,
+                  ),
                 ),
               ),
               const Spacer(),
-              OutlinedButton.icon(
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 280),
+                child: OutlinedButton.icon(
                 icon: Icon(Icons.account_circle_outlined,
                     color: context.cs.onSurface),
                 label: _googleBusy
@@ -127,8 +140,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(16)),
                 ),
               ),
+              ),
               const SizedBox(height: 16),
-              ElevatedButton.icon(
+              FadeSlideIn(
+                delay: const Duration(milliseconds: 340),
+                child: ElevatedButton.icon(
                 icon: const Icon(Icons.phone_iphone,
                     color: AppTheme.darkBackground),
                 label: const Text('Continue with Mobile Number'),
@@ -139,6 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => const PhoneLoginScreen()));
                 },
+              ),
               ),
               const SizedBox(height: 24),
               Text(

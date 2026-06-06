@@ -10,6 +10,7 @@ import '../models/session.dart';
 import '../services/session_service.dart';
 import '../state/auth_state.dart';
 import '../theme.dart';
+import '../widgets/animations.dart';
 import 'chat_screens.dart';
 
 class SessionDetailScreen extends StatefulWidget {
@@ -218,34 +219,43 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Text(session.title,
-                          style:
-                              Theme.of(context).textTheme.headlineLarge),
+                      FadeSlideIn(
+                        beginOffset: const Offset(0, 0.12),
+                        child: Text(session.title,
+                            style:
+                                Theme.of(context).textTheme.headlineLarge),
+                      ),
                       const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                              child: _buildInfoCard(Icons.calendar_today,
-                                  dateLabel, timeLabel)),
-                          const SizedBox(width: 16),
-                          Expanded(
-                              child: _buildInfoCard(
-                                  Icons.group,
-                                  '${session.filledSlots}/${session.totalSlots}',
-                                  'going')),
-                        ],
+                      FadeSlideIn(
+                        delay: const Duration(milliseconds: 70),
+                        child: Row(
+                          children: [
+                            Expanded(
+                                child: _buildInfoCard(Icons.calendar_today,
+                                    dateLabel, timeLabel)),
+                            const SizedBox(width: 16),
+                            Expanded(
+                                child: _buildInfoCard(
+                                    Icons.group,
+                                    '${session.filledSlots}/${session.totalSlots}',
+                                    'going')),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      _buildInfoCard(
-                        Icons.location_on,
-                        session.venue.name.isEmpty
-                            ? 'TBD'
-                            : session.venue.name,
-                        session.distanceKm != null
-                            ? '${session.distanceKm!.toStringAsFixed(1)} km away'
-                            : (session.venue.address.isEmpty
-                                ? ''
-                                : session.venue.address),
+                      FadeSlideIn(
+                        delay: const Duration(milliseconds: 140),
+                        child: _buildInfoCard(
+                          Icons.location_on,
+                          session.venue.name.isEmpty
+                              ? 'TBD'
+                              : session.venue.name,
+                          session.distanceKm != null
+                              ? '${session.distanceKm!.toStringAsFixed(1)} km away'
+                              : (session.venue.address.isEmpty
+                                  ? ''
+                                  : session.venue.address),
+                        ),
                       ),
                       const SizedBox(height: 32),
                       const Text('Organizer',

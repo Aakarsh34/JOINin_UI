@@ -11,6 +11,7 @@ import '../services/conversation_service.dart';
 import '../services/session_service.dart';
 import '../state/auth_state.dart';
 import '../theme.dart';
+import '../widgets/animations.dart';
 
 class DirectMessagesScreen extends StatefulWidget {
   const DirectMessagesScreen({super.key});
@@ -134,7 +135,9 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
                 ? DateFormat('h:mm a')
                     .format(conv.lastMessageAt!.toLocal())
                 : '';
-            return ListTile(
+            return FadeSlideIn(
+              delay: Duration(milliseconds: (index.clamp(0, 8)) * 50),
+              child: ListTile(
               contentPadding: const EdgeInsets.symmetric(
                   horizontal: 20, vertical: 8),
               leading: CircleAvatar(
@@ -202,6 +205,7 @@ class _DirectMessagesScreenState extends State<DirectMessagesScreen> {
                             PrivateChatScreen(conversation: conv)));
                 _load();
               },
+            ),
             );
           },
         ),

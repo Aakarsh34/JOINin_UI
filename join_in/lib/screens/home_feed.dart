@@ -7,6 +7,7 @@ import '../models/session.dart';
 import '../models/session_filters.dart';
 import '../services/session_service.dart';
 import '../theme.dart';
+import '../widgets/animations.dart';
 import '../widgets/session_filter_sheet.dart';
 import '../widgets/shimmer.dart';
 import 'notifications_screen.dart';
@@ -347,7 +348,15 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         itemCount: _items.length,
-        itemBuilder: (context, index) => _buildSessionCard(_items[index]),
+        itemBuilder: (context, index) {
+          // Cascade the first screenful of cards in; cap the delay so a long
+          // list doesn't keep animating well past what the user can see.
+          final delayMs = (index.clamp(0, 8)) * 60;
+          return FadeSlideIn(
+            delay: Duration(milliseconds: delayMs),
+            child: _buildSessionCard(_items[index]),
+          );
+        },
       ),
     );
   }
@@ -367,7 +376,8 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
         ? DateFormat('EEE, MMM d • h:mm a').format(session.dateTime!.toLocal())
         : 'Time TBD';
 
-    return Container(
+    return Pressable(
+      child: Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
@@ -564,6 +574,7 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
             ),
           ),
         ),
+      ),
       ),
     );
   }
