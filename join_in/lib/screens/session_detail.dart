@@ -11,6 +11,7 @@ import '../services/session_service.dart';
 import '../state/auth_state.dart';
 import '../theme.dart';
 import '../widgets/animations.dart';
+import '../widgets/glass.dart';
 import 'chat_screens.dart';
 
 class SessionDetailScreen extends StatefulWidget {
@@ -188,14 +189,12 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               child: Padding(
                 padding: const EdgeInsets.only(top: 250, bottom: 120),
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: context.cs.surface,
-                    borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(32)),
-                  ),
+                child: GlassSurface(
+                  borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppMetrics.radiusXl + 4)),
+                  blur: 22,
                   padding: const EdgeInsets.all(24),
+                  showShimmer: true,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -542,12 +541,10 @@ class _SessionDetailScreenState extends State<SessionDetailScreen> {
   }
 
   Widget _buildInfoCard(IconData icon, String title, String subtitle) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-          color: context.cs.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: context.cs.outline)),
+    return GlassSurface(
+      borderRadius: BorderRadius.circular(AppMetrics.radiusMd),
+      blur: 12,
+      padding: const EdgeInsets.all(AppMetrics.cardPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

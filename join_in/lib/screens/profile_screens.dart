@@ -8,6 +8,7 @@ import '../state/auth_state.dart';
 import '../state/theme_state.dart';
 import '../theme.dart';
 import '../widgets/animations.dart';
+import '../widgets/glass.dart';
 import '../widgets/theme_toggle.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -251,13 +252,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             const SizedBox(height: 16),
             FadeSlideIn(
               child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: AppMetrics.screenPadding),
+              child: GlassSurface(
+                borderRadius: BorderRadius.circular(AppMetrics.radiusLg),
+                blur: 16,
                 padding: const EdgeInsets.symmetric(vertical: 18),
-                decoration: BoxDecoration(
-                    color: context.cs.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: context.cs.outline)),
+                showShimmer: true,
                 child: _loadingStats
                     ? const Padding(
                         padding: EdgeInsets.symmetric(vertical: 8),
@@ -352,6 +352,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
             const SizedBox(height: 40),
+            const SizedBox(height: 80),
           ],
         ),
       ),
@@ -562,17 +563,18 @@ class _SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = destructive ? AppTheme.danger : context.cs.onSurface;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      child: Material(
-        color: context.cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppMetrics.screenPadding, vertical: 4),
+      child: GlassSurface(
+        borderRadius: BorderRadius.circular(AppMetrics.radiusMd),
+        blur: 12,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Material(
+        color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppMetrics.radiusMd),
           onTap: onTap,
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
+          child: Row(
               children: [
                 Container(
                   width: 38,
@@ -610,8 +612,8 @@ class _SettingsTile extends StatelessWidget {
                     color: context.cs.onSurfaceVariant),
               ],
             ),
-          ),
         ),
+      ),
       ),
     );
   }

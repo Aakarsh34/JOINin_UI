@@ -8,6 +8,7 @@ import '../models/session_filters.dart';
 import '../services/session_service.dart';
 import '../theme.dart';
 import '../widgets/animations.dart';
+import '../widgets/glass.dart';
 import '../widgets/session_filter_sheet.dart';
 import '../widgets/shimmer.dart';
 import 'notifications_screen.dart';
@@ -346,7 +347,7 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         itemCount: _items.length,
         itemBuilder: (context, index) {
           // Cascade the first screenful of cards in; cap the delay so a long
@@ -377,27 +378,13 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
         : 'Time TBD';
 
     return Pressable(
-      child: Container(
+      child: GlassSurface(
       margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: context.isDark
-            ? [
-                BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.25),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4)),
-              ]
-            : [
-                BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6)),
-              ],
-      ),
+      borderRadius: BorderRadius.circular(AppMetrics.radiusLg),
+      padding: EdgeInsets.zero,
       child: Material(
-        color: context.cs.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppMetrics.radiusLg),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () async {
@@ -409,26 +396,21 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
                         sessionId: session.id, initial: session)));
             _load(silent: true);
           },
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: context.cs.outline),
-            ),
-            child: IntrinsicHeight(
+          child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Container(
-                width: 6,
+                width: 5,
                 decoration: BoxDecoration(
                     color: categoryColor,
                     borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        bottomLeft: Radius.circular(20))),
+                        topLeft: Radius.circular(AppMetrics.radiusLg),
+                        bottomLeft: Radius.circular(AppMetrics.radiusLg))),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppMetrics.cardPadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -571,9 +553,8 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
               ),
             ],
           ),
-            ),
-          ),
         ),
+      ),
       ),
       ),
     );
@@ -582,7 +563,7 @@ class HomeFeedScreenState extends State<HomeFeedScreen> {
   Widget _buildSkeletonLoader() {
     return Shimmer(
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
         itemCount: 4,
         itemBuilder: (context, index) => Container(
           margin: const EdgeInsets.only(bottom: 16),

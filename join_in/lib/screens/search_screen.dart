@@ -9,6 +9,7 @@ import '../models/session.dart';
 import '../services/session_service.dart';
 import '../theme.dart';
 import '../widgets/animations.dart';
+import '../widgets/glass.dart';
 import '../widgets/shimmer.dart';
 import 'session_detail.dart';
 
@@ -84,10 +85,15 @@ class _SearchScreenState extends State<SearchScreen> {
           preferredSize: const Size.fromHeight(76),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: TextField(
+            child: GlassSurface(
+              borderRadius: BorderRadius.circular(30),
+              blur: 14,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: TextField(
               controller: _searchController,
               onChanged: _onChanged,
               textInputAction: TextInputAction.search,
+              style: TextStyle(color: context.cs.onSurface),
               decoration: InputDecoration(
                 hintText: 'Search events, categories, venues...',
                 prefixIcon: const Icon(Icons.search),
@@ -101,20 +107,13 @@ class _SearchScreenState extends State<SearchScreen> {
                         },
                       )
                     : null,
-                filled: true,
-                fillColor: context.cs.surfaceContainerLow,
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide(color: context.cs.outline)),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: BorderSide(color: context.cs.outline)),
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                    borderSide: const BorderSide(
-                        color: AppTheme.primaryAccent, width: 1.5)),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                filled: false,
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(vertical: 14),
               ),
+            ),
             ),
           ),
         ),
@@ -130,7 +129,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   : RefreshIndicator(
                       onRefresh: _load,
                       child: ListView.separated(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                         itemCount: _filtered.length,
                         separatorBuilder: (_, _) =>
                             const SizedBox(height: 10),
@@ -197,56 +196,57 @@ class _SearchScreenState extends State<SearchScreen> {
         ? (session.activityType.isEmpty ? 'Event' : session.activityType)
         : category.label;
     return Pressable(
-      child: Material(
-      color: context.cs.surfaceContainerLow,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: () {
-          HapticFeedback.selectionClick();
-          Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => SessionDetailScreen(
-                      sessionId: session.id, initial: session)));
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                    color: category.color.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(14)),
-                child:
-                    Text(category.emoji, style: const TextStyle(fontSize: 24)),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(session.title,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 15),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
-                    const SizedBox(height: 4),
-                    Text('$subtitleLabel • $dateLabel',
-                        style: TextStyle(
-                            color: context.cs.onSurfaceVariant, fontSize: 13)),
-                  ],
+      child: GlassSurface(
+        borderRadius: BorderRadius.circular(AppMetrics.radiusMd + 2),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppMetrics.radiusMd + 2),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => SessionDetailScreen(
+                          sessionId: session.id, initial: session)));
+            },
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                      color: category.color.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(14)),
+                  child: Text(category.emoji,
+                      style: const TextStyle(fontSize: 24)),
                 ),
-              ),
-              Icon(Icons.chevron_right,
-                  color: context.cs.onSurfaceVariant),
-            ],
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(session.title,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 15),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 4),
+                      Text('$subtitleLabel • $dateLabel',
+                          style: TextStyle(
+                              color: context.cs.onSurfaceVariant,
+                              fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right,
+                    color: context.cs.onSurfaceVariant),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

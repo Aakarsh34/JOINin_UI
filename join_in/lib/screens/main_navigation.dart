@@ -1,7 +1,10 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme.dart';
+import '../widgets/glass.dart';
 import 'chat_screens.dart';
 import 'create_session.dart';
 import 'home_feed.dart';
@@ -46,14 +49,9 @@ class MainNavigationState extends State<MainNavigation> {
         label: 'Profile'),
   ];
 
-  // Direct GlobalKey to the Home feed so we can ask it to refresh after the
-  // user publishes a new session, without tearing it down and re-running its
-  // initState() on every tab switch.
-  final GlobalKey<HomeFeedScreenState> _homeKey = GlobalKey<HomeFeedScreenState>();
+  final GlobalKey<HomeFeedScreenState> _homeKey =
+      GlobalKey<HomeFeedScreenState>();
 
-  // Lazily materialised so cold start only triggers Home's initial network
-  // call. Subsequent tabs are built the first time they are tapped and then
-  // kept alive by [IndexedStack].
   late final List<Widget?> _screens = List<Widget?>.filled(_items.length, null);
 
   @override
@@ -62,8 +60,6 @@ class MainNavigationState extends State<MainNavigation> {
     _screens[0] = HomeFeedScreen(key: _homeKey);
   }
 
-  /// Programmatically switch the active tab. Used after publishing a session
-  /// to jump the user back to the Home feed and silently refresh it.
   void switchTo(int index) {
     if (index < 0 || index >= _items.length) return;
     _ensureBuilt(index);
@@ -96,14 +92,21 @@ class MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
+      extendBody: true,
+      backgroundColor: context.cs.surface,
+      body: Stack(
         children: [
-          for (int i = 0; i < _items.length; i++)
-            _screens[i] ?? const SizedBox.shrink(),
+          const Positioned.fill(child: AmbientOrbs()),
+          IndexedStack(
+            index: _currentIndex,
+            children: [
+              for (int i = 0; i < _items.length; i++)
+                _screens[i] ?? const SizedBox.shrink(),
+            ],
+          ),
         ],
       ),
-      bottomNavigationBar: _BottomNav(
+      bottomNavigationBar: _GlassBottomNav(
         items: _items,
         currentIndex: _currentIndex,
         onTap: _onTap,
@@ -125,8 +128,8 @@ class _NavItem {
   });
 }
 
-class _BottomNav extends StatelessWidget {
-  const _BottomNav({
+class _GlassBottomNav extends StatelessWidget {
+  const _GlassBottomNav({
     required this.items,
     required this.currentIndex,
     required this.onTap,
@@ -139,29 +142,48 @@ class _BottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
-    return Container(
-      decoration: BoxDecoration(
-        color: context.cs.surfaceContainerLow,
-        border: Border(top: BorderSide(color: context.cs.outline)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: context.isDark ? 0.4 : 0.06),
-            blurRadius: 24,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      padding: EdgeInsets.only(top: 8, bottom: 8 + bottomInset),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          for (int i = 0; i < items.length; i++)
-            _NavSlot(
-              item: items[i],
-              active: i == currentIndex,
-              onTap: () => onTap(i),
+    final isDark = context.isDark;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 0, 16, 8 + bottomInset),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppMetrics.radiusXl),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(
+              sigmaX: AppMetrics.glassBlur, sigmaY: AppMetrics.glassBlur),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.white.withValues(alpha: 0.78),
+              borderRadius: BorderRadius.circular(AppMetrics.radiusXl),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.14)
+                    : Colors.white.withValues(alpha: 0.9),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                  blurRadius: 28,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
-        ],
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                for (int i = 0; i < items.length; i++)
+                  _NavSlot(
+                    item: items[i],
+                    active: i == currentIndex,
+                    onTap: () => onTap(i),
+                  ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -185,18 +207,22 @@ class _NavSlot extends StatelessWidget {
         onTap: onTap,
         behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+          duration: const Duration(milliseconds: 280),
           curve: Curves.easeOutCubic,
-          width: 52,
-          height: 52,
+          width: 54,
+          height: 54,
           decoration: BoxDecoration(
             gradient: AppTheme.primaryGradient,
             shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.35),
+              width: 1.5,
+            ),
             boxShadow: [
               BoxShadow(
                 color: AppTheme.primaryAccent
-                    .withValues(alpha: active ? 0.5 : 0.25),
-                blurRadius: active ? 18 : 12,
+                    .withValues(alpha: active ? 0.55 : 0.30),
+                blurRadius: active ? 20 : 14,
                 spreadRadius: 1,
               ),
             ],
@@ -205,32 +231,50 @@ class _NavSlot extends StatelessWidget {
         ),
       );
     }
+
     final color =
         active ? AppTheme.primaryAccent : context.cs.onSurfaceVariant;
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 180),
-        transitionBuilder: (child, animation) => ScaleTransition(
-          scale: animation,
-          child: FadeTransition(opacity: animation, child: child),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: active
+              ? AppTheme.primaryAccent.withValues(alpha: 0.14)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: active
+              ? Border.all(
+                  color: AppTheme.primaryAccent.withValues(alpha: 0.25))
+              : null,
         ),
-        child: Column(
-          key: ValueKey('${item.label}_$active'),
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(active ? item.filled : item.outlined, color: color, size: 24),
-            const SizedBox(height: 4),
-            Text(
-              item.label,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          transitionBuilder: (child, animation) => ScaleTransition(
+            scale: animation,
+            child: FadeTransition(opacity: animation, child: child),
+          ),
+          child: Column(
+            key: ValueKey('${item.label}_$active'),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(active ? item.filled : item.outlined,
+                  color: color, size: 22),
+              const SizedBox(height: 3),
+              Text(
+                item.label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 10,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

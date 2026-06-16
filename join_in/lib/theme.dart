@@ -323,3 +323,16 @@ extension AppColorsX on BuildContext {
   /// Color appropriate for text drawn over the brand gradient.
   Color get onGradient => AppTheme.darkBackground;
 }
+
+/// Shared spacing and radius tokens so every screen feels consistent.
+class AppMetrics {
+  AppMetrics._();
+
+  static const double radiusSm = 12;
+  static const double radiusMd = 16;
+  static const double radiusLg = 20;
+  static const double radiusXl = 28;
+  static const double screenPadding = 20;
+  static const double cardPadding = 16;
+  static const double glassBlur = 18;
+}

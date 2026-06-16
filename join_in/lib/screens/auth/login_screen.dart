@@ -6,6 +6,7 @@ import '../../services/google_sign_in_service.dart';
 import '../../state/auth_state.dart';
 import '../../theme.dart';
 import '../../widgets/animations.dart';
+import '../../widgets/glass.dart';
 import 'phone_login_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -55,7 +56,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
+      body: Stack(
+        children: [
+          const Positioned.fill(child: AmbientOrbs()),
+          SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
           child: Column(
@@ -65,22 +69,20 @@ class _LoginScreenState extends State<LoginScreen> {
               FadeSlideIn(
                 beginOffset: const Offset(0, 0.18),
                 child: Center(
-                  child: Container(
-                    decoration: BoxDecoration(
+                  child: GlassSurface(
+                    borderRadius: BorderRadius.circular(100),
+                    blur: 20,
+                    showShimmer: true,
+                    padding: const EdgeInsets.all(24),
+                    child: Container(
+                    decoration: const BoxDecoration(
                       gradient: AppTheme.primaryGradient,
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              AppTheme.primaryAccent.withValues(alpha: 0.35),
-                          blurRadius: 40,
-                          spreadRadius: 4,
-                        ),
-                      ],
                     ),
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(8),
                     child: const Icon(Icons.groups_2_outlined,
                         size: 56, color: AppTheme.darkBackground),
+                  ),
                   ),
                 ),
               ),
@@ -168,6 +170,8 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
         ),
+      ),
+        ],
       ),
     );
   }

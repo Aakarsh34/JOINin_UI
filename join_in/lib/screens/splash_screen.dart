@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme.dart';
+import '../widgets/glass.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -45,19 +46,27 @@ class _SplashScreenState extends State<SplashScreen>
               opacity: _fade.value,
               child: Transform.scale(
                 scale: 0.85 + (_scale.value * 0.15),
-                child: Column(
+                child: GlassSurface(
+                  borderRadius: BorderRadius.circular(32),
+                  blur: 16,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 40, vertical: 32),
+                  tint: Colors.white.withValues(alpha: 0.15),
+                  borderColor: Colors.white.withValues(alpha: 0.35),
+                  child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.groups_2_outlined,
-                        size: 120, color: AppTheme.darkBackground),
-                    const SizedBox(height: 24),
+                        size: 88, color: AppTheme.darkBackground),
+                    const SizedBox(height: 20),
                     Text(
                       'JoinIn',
                       style: Theme.of(context).textTheme.displayLarge?.copyWith(
                             color: AppTheme.darkBackground,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -1.5,
-                            fontSize: 56,
+                            fontSize: 48,
                           ),
                     ),
                     const SizedBox(height: 8),
@@ -67,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen>
                           color: AppTheme.darkBackground,
                           fontWeight: FontWeight.w600),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
                     const SizedBox(
                       width: 28,
                       height: 28,
@@ -77,6 +86,7 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                   ],
+                ),
                 ),
               ),
             ),
